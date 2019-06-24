@@ -183,14 +183,14 @@ func (s *ServiceController) enqueueService(obj interface{}) {
 
 // Run starts a background goroutine that watches for changes to services that
 // have (or had) LoadBalancers=true and ensures that they have
-// load balancers created and deleted appropriately.
+// load balancers created and deleted appropriately. // 启动一个后台协程监控LoadBalance类型的service，以确保可以加载和删除 load balancer。
 // serviceSyncPeriod controls how often we check the cluster's services to
-// ensure that the correct load balancers exist.
+// ensure that the correct load balancers exist. // serviceSyncPeriod 控制查询service的间隔，以确保load balancer仍然存在
 // nodeSyncPeriod controls how often we check the cluster's nodes to determine
-// if load balancers need to be updated to point to a new set.
+// if load balancers need to be updated to point to a new set. // nodeSyncPeriod 控制查询node的间隔，以保证可以更新load balancer。
 //
 // It's an error to call Run() more than once for a given ServiceController
-// object.
+// object. // 同一个ServiceController对象不可以调用两次Run，否则会出错
 func (s *ServiceController) Run(stopCh <-chan struct{}, workers int) {
 	defer runtime.HandleCrash()
 	defer s.queue.ShutDown()
@@ -440,61 +440,61 @@ func (s *serviceCache) delete(serviceName string) {
 }
 
 // needsCleanup checks if load balancer needs to be cleaned up as indicated by finalizer.
-func needsCleanup(service *v1.Service) bool {
+func needsCleanup(service *v1.Service) bool { // 检查某service是否包含LoadBalancerCleanupFinalizer,如果包含则表示需要清理
 	return service.ObjectMeta.DeletionTimestamp != nil && servicehelper.HasLBFinalizer(service)
 }
 
 // needsUpdate checks if load balancer needs to be updated due to change in attributes.
-func (s *ServiceController) needsUpdate(oldService *v1.Service, newService *v1.Service) bool {
-	if !wantsLoadBalancer(oldService) && !wantsLoadBalancer(newService) {
+func (s *ServiceController) needsUpdate(oldService *v1.Service, newService *v1.Service) bool { // 判断service是否需要更新
+	if !wantsLoadBalancer(oldService) && !wantsLoadBalancer(newService) { // 如果新旧service都不是load balance类型,则忽略更新
 		return false
 	}
-	if wantsLoadBalancer(oldService) != wantsLoadBalancer(newService) {
+	if wantsLoadBalancer(oldService) != wantsLoadBalancer(newService) { // 如果类型发生变化且不管新旧任一service为load balance类型则需要更新，同时记录事件,
 		s.eventRecorder.Eventf(newService, v1.EventTypeNormal, "Type", "%v -> %v",
 			oldService.Spec.Type, newService.Spec.Type)
 		return true
 	}
 
-	if wantsLoadBalancer(newService) && !reflect.DeepEqual(oldService.Spec.LoadBalancerSourceRanges, newService.Spec.LoadBalancerSourceRanges) {
+	if wantsLoadBalancer(newService) && !reflect.DeepEqual(oldService.Spec.LoadBalancerSourceRanges, newService.Spec.LoadBalancerSourceRanges) { // 如果新service为负载均衡类型,而新旧两个service的LoadBalancerSourceRanges不一样,则需要更新，同时记录事件
 		s.eventRecorder.Eventf(newService, v1.EventTypeNormal, "LoadBalancerSourceRanges", "%v -> %v",
 			oldService.Spec.LoadBalancerSourceRanges, newService.Spec.LoadBalancerSourceRanges)
 		return true
 	}
 
-	if !portsEqualForLB(oldService, newService) || oldService.Spec.SessionAffinity != newService.Spec.SessionAffinity {
+	if !portsEqualForLB(oldService, newService) || oldService.Spec.SessionAffinity != newService.Spec.SessionAffinity { // 如果新旧service的端口不一致或session亲和类型不一致,则需要更新
 		return true
 	}
-	if !loadBalancerIPsAreEqual(oldService, newService) {
+	if !loadBalancerIPsAreEqual(oldService, newService) { // 如果LoadBalancerIP变了则需要更新,同时记录事件
 		s.eventRecorder.Eventf(newService, v1.EventTypeNormal, "LoadbalancerIP", "%v -> %v",
 			oldService.Spec.LoadBalancerIP, newService.Spec.LoadBalancerIP)
 		return true
 	}
-	if len(oldService.Spec.ExternalIPs) != len(newService.Spec.ExternalIPs) {
+	if len(oldService.Spec.ExternalIPs) != len(newService.Spec.ExternalIPs) { // 如果外部IP个数有变化,则需要更新,同时记录事件
 		s.eventRecorder.Eventf(newService, v1.EventTypeNormal, "ExternalIP", "Count: %v -> %v",
 			len(oldService.Spec.ExternalIPs), len(newService.Spec.ExternalIPs))
 		return true
 	}
-	for i := range oldService.Spec.ExternalIPs {
+	for i := range oldService.Spec.ExternalIPs { // 如果外部IP有变化,则需要更新,同时记录事件
 		if oldService.Spec.ExternalIPs[i] != newService.Spec.ExternalIPs[i] {
 			s.eventRecorder.Eventf(newService, v1.EventTypeNormal, "ExternalIP", "Added: %v",
 				newService.Spec.ExternalIPs[i])
 			return true
 		}
 	}
-	if !reflect.DeepEqual(oldService.Annotations, newService.Annotations) {
+	if !reflect.DeepEqual(oldService.Annotations, newService.Annotations) { // 如果Annotations有变化，则需要更新
 		return true
 	}
-	if oldService.UID != newService.UID {
+	if oldService.UID != newService.UID { // 如果service的UID有变化，则需要更新
 		s.eventRecorder.Eventf(newService, v1.EventTypeNormal, "UID", "%v -> %v",
 			oldService.UID, newService.UID)
 		return true
 	}
-	if oldService.Spec.ExternalTrafficPolicy != newService.Spec.ExternalTrafficPolicy {
+	if oldService.Spec.ExternalTrafficPolicy != newService.Spec.ExternalTrafficPolicy { // 如果ExternalTrafficPolicy发生变化，则需要更新，并记录事件
 		s.eventRecorder.Eventf(newService, v1.EventTypeNormal, "ExternalTrafficPolicy", "%v -> %v",
 			oldService.Spec.ExternalTrafficPolicy, newService.Spec.ExternalTrafficPolicy)
 		return true
 	}
-	if oldService.Spec.HealthCheckNodePort != newService.Spec.HealthCheckNodePort {
+	if oldService.Spec.HealthCheckNodePort != newService.Spec.HealthCheckNodePort { // 如果HealthCheckNodePort发生变化，则需要更新，并记录事件
 		s.eventRecorder.Eventf(newService, v1.EventTypeNormal, "HealthCheckNodePort", "%v -> %v",
 			oldService.Spec.HealthCheckNodePort, newService.Spec.HealthCheckNodePort)
 		return true
@@ -507,7 +507,7 @@ func (s *ServiceController) loadBalancerName(service *v1.Service) string {
 	return s.balancer.GetLoadBalancerName(context.TODO(), "", service)
 }
 
-func getPortsForLB(service *v1.Service) ([]*v1.ServicePort, error) {
+func getPortsForLB(service *v1.Service) ([]*v1.ServicePort, error) { // 获取service的端口(这里把获取端口和检查端口协议耦合在一起并不好,需要改进)
 	var protocol v1.Protocol
 
 	ports := []*v1.ServicePort{}
@@ -517,7 +517,7 @@ func getPortsForLB(service *v1.Service) ([]*v1.ServicePort, error) {
 		ports = append(ports, sp)
 		if protocol == "" {
 			protocol = sp.Protocol
-		} else if protocol != sp.Protocol && wantsLoadBalancer(service) {
+		} else if protocol != sp.Protocol && wantsLoadBalancer(service) { // loadbalancer类型不支持混合类型的协议
 			// TODO:  Convert error messages to use event recorder
 			return nil, fmt.Errorf("mixed protocol external load balancers are not supported")
 		}
@@ -537,12 +537,12 @@ func portsEqualForLB(x, y *v1.Service) bool {
 	return portSlicesEqualForLB(xPorts, yPorts)
 }
 
-func portSlicesEqualForLB(x, y []*v1.ServicePort) bool {
+func portSlicesEqualForLB(x, y []*v1.ServicePort) bool { // 比较两个service的port是否完全一样(因为只有loadbalancer类型的才有比较的需求,所以命名中带着LB)
 	if len(x) != len(y) {
 		return false
 	}
 
-	for i := range x {
+	for i := range x { // 逐个比较,顺序都要求一致
 		if !portEqualForLB(x[i], y[i]) {
 			return false
 		}
@@ -702,7 +702,7 @@ func (s *ServiceController) lockedUpdateLoadBalancerHosts(service *v1.Service, h
 	return err
 }
 
-func wantsLoadBalancer(service *v1.Service) bool {
+func wantsLoadBalancer(service *v1.Service) bool { // 查询某service类型是否是load balance
 	return service.Spec.Type == v1.ServiceTypeLoadBalancer
 }
 

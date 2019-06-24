@@ -107,7 +107,7 @@ func NeedsHealthCheck(service *v1.Service) bool {
 }
 
 // HasLBFinalizer checks if service contains LoadBalancerCleanupFinalizer.
-func HasLBFinalizer(service *v1.Service) bool {
+func HasLBFinalizer(service *v1.Service) bool {  // 检查service是否包含LoadBalancerCleanupFinalizer
 	for _, finalizer := range service.ObjectMeta.Finalizers {
 		if finalizer == LoadBalancerCleanupFinalizer {
 			return true

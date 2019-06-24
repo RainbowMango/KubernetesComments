@@ -3448,14 +3448,14 @@ const (
 const DefaultClientIPServiceAffinitySeconds int32 = 10800
 
 // SessionAffinityConfig represents the configurations of session affinity.
-type SessionAffinityConfig struct {
+type SessionAffinityConfig struct { // session亲和性配置
 	// clientIP contains the configurations of Client IP based session affinity.
 	// +optional
 	ClientIP *ClientIPConfig `json:"clientIP,omitempty" protobuf:"bytes,1,opt,name=clientIP"`
 }
 
 // ClientIPConfig represents the configurations of Client IP based session affinity.
-type ClientIPConfig struct {
+type ClientIPConfig struct { // session亲和性配置，配置客户端ClientIP类型的session保留的时间，最大不超过一天，默认为3小时，以秒计
 	// timeoutSeconds specifies the seconds of ClientIP type session sticky time.
 	// The value must be >0 && <=86400(for 1 day) if ServiceAffinity == "ClientIP".
 	// Default value is 10800(for 3 hours).
@@ -3575,25 +3575,25 @@ type ServiceSpec struct {
 	// +optional
 	Type ServiceType `json:"type,omitempty" protobuf:"bytes,4,opt,name=type,casttype=ServiceType"`
 
-	// externalIPs is a list of IP addresses for which nodes in the cluster
-	// will also accept traffic for this service.  These IPs are not managed by
+	// externalIPs is a list of IP addresses for which nodes in the cluster // externalIPs 指定client可以通过这些(集群)外部的IP来访问service.
+	// will also accept traffic for this service.  These IPs are not managed by // 由管理员保证证访问这些地址的请求会转发集群,比如client可以使用 externalIP:8080 来访问service,由管理员保证这个流量会下发到某个node
 	// Kubernetes.  The user is responsible for ensuring that traffic arrives
 	// at a node with this IP.  A common example is external load-balancers
 	// that are not part of the Kubernetes system.
 	// +optional
 	ExternalIPs []string `json:"externalIPs,omitempty" protobuf:"bytes,5,rep,name=externalIPs"`
 
-	// Supports "ClientIP" and "None". Used to maintain session affinity.
+	// Supports "ClientIP" and "None". Used to maintain session affinity. // Session亲和类型，可以选择“ClientIP”或“None”
 	// Enable client IP based session affinity.
 	// Must be ClientIP or None.
-	// Defaults to None.
+	// Defaults to None. // 默认值为“None”
 	// More info: https://kubernetes.io/docs/concepts/services-networking/service/#virtual-ips-and-service-proxies
 	// +optional
 	SessionAffinity ServiceAffinity `json:"sessionAffinity,omitempty" protobuf:"bytes,7,opt,name=sessionAffinity,casttype=ServiceAffinity"`
 
 	// Only applies to Service Type: LoadBalancer
-	// LoadBalancer will get created with the IP specified in this field.
-	// This feature depends on whether the underlying cloud-provider supports specifying
+	// LoadBalancer will get created with the IP specified in this field. // 将使用该IP创建负载均衡器(负载均衡器由云厂商提供,kubernetes使用标准接口创建)
+	// This feature depends on whether the underlying cloud-provider supports specifying // 这个特性取决于云厂商是否支持指定loadBalancerIP. 如果厂商不支持则自动忽略(指定了也没用)
 	// the loadBalancerIP when a load balancer is created.
 	// This field will be ignored if the cloud-provider does not support the feature.
 	// +optional
@@ -3613,19 +3613,19 @@ type ServiceSpec struct {
 	// +optional
 	ExternalName string `json:"externalName,omitempty" protobuf:"bytes,10,opt,name=externalName"`
 
-	// externalTrafficPolicy denotes if this Service desires to route external
-	// traffic to node-local or cluster-wide endpoints. "Local" preserves the
+	// externalTrafficPolicy denotes if this Service desires to route external // 指示外部流量是在node内部消化还是在集群内部消化,可选值分别为"Local"、"Cluster"
+	// traffic to node-local or cluster-wide endpoints. "Local" preserves the  // "Local"会保留客户端的IP，避免下一跳（直接在本node上找endpoint，如果没有endpoint则丢掉该包）
 	// client source IP and avoids a second hop for LoadBalancer and Nodeport
 	// type services, but risks potentially imbalanced traffic spreading.
-	// "Cluster" obscures the client source IP and may cause a second hop to
+	// "Cluster" obscures the client source IP and may cause a second hop to // "Cluster"则在转发流量到其他node时修改客户端的源IP
 	// another node, but should have good overall load-spreading.
 	// +optional
 	ExternalTrafficPolicy ServiceExternalTrafficPolicyType `json:"externalTrafficPolicy,omitempty" protobuf:"bytes,11,opt,name=externalTrafficPolicy"`
 
-	// healthCheckNodePort specifies the healthcheck nodePort for the service.
+	// healthCheckNodePort specifies the healthcheck nodePort for the service. // 指定用于健康检查的端口号（端口号在node上），如果不指定则由服务端分配
 	// If not specified, HealthCheckNodePort is created by the service api
 	// backend with the allocated nodePort. Will use user-specified nodePort value
-	// if specified by the client. Only effects when Type is set to LoadBalancer
+	// if specified by the client. Only effects when Type is set to LoadBalancer // 仅当service为loadBalancer类型且ExternalTrafficPolicy值为"Local"时有效
 	// and ExternalTrafficPolicy is set to Local.
 	// +optional
 	HealthCheckNodePort int32 `json:"healthCheckNodePort,omitempty" protobuf:"bytes,12,opt,name=healthCheckNodePort"`
