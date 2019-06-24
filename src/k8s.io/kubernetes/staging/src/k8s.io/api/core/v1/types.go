@@ -3537,8 +3537,8 @@ type ServiceSpec struct {
 	// +listMapKey=protocol
 	Ports []ServicePort `json:"ports,omitempty" patchStrategy:"merge" patchMergeKey:"port" protobuf:"bytes,1,rep,name=ports"`
 
-	// Route service traffic to pods with label keys and values matching this
-	// selector. If empty or not present, the service is assumed to have an
+	// Route service traffic to pods with label keys and values matching this // 定义选择pod的label。service将跟据这些label选择pod并把流程导到pod中。
+	// selector. If empty or not present, the service is assumed to have an // 如果为空，表明service使用外部手段管理流量
 	// external process managing its endpoints, which Kubernetes will not
 	// modify. Only applies to types ClusterIP, NodePort, and LoadBalancer.
 	// Ignored if type is ExternalName.
@@ -3599,8 +3599,8 @@ type ServiceSpec struct {
 	// +optional
 	LoadBalancerIP string `json:"loadBalancerIP,omitempty" protobuf:"bytes,8,opt,name=loadBalancerIP"`
 
-	// If specified and supported by the platform, this will restrict traffic through the cloud-provider
-	// load-balancer will be restricted to the specified client IPs. This field will be ignored if the
+	// If specified and supported by the platform, this will restrict traffic through the cloud-provider // 该字段指定哪些IP(段)能访问厂商的负载均衡器
+	// load-balancer will be restricted to the specified client IPs. This field will be ignored if the // 如果云厂商不支持这个特性将会忽略
 	// cloud-provider does not support the feature."
 	// More info: https://kubernetes.io/docs/tasks/access-application-cluster/configure-cloud-provider-firewall/
 	// +optional
@@ -3645,36 +3645,36 @@ type ServiceSpec struct {
 
 // ServicePort contains information on service's port.
 type ServicePort struct {
-	// The name of this port within the service. This must be a DNS_LABEL.
-	// All ports within a ServiceSpec must have unique names. This maps to
+	// The name of this port within the service. This must be a DNS_LABEL. // port的名称
+	// All ports within a ServiceSpec must have unique names. This maps to // service的spec中的port必须有唯一的名字,这个名字与EndpointPort对象中的Name一致.
 	// the 'Name' field in EndpointPort objects.
-	// Optional if only one ServicePort is defined on this service.
+	// Optional if only one ServicePort is defined on this service. // 如果service只有一个port，可以不指定名称
 	// +optional
 	Name string `json:"name,omitempty" protobuf:"bytes,1,opt,name=name"`
 
-	// The IP protocol for this port. Supports "TCP", "UDP", and "SCTP".
+	// The IP protocol for this port. Supports "TCP", "UDP", and "SCTP". // 指定协议，默认为TCP
 	// Default is TCP.
 	// +optional
 	Protocol Protocol `json:"protocol,omitempty" protobuf:"bytes,2,opt,name=protocol,casttype=Protocol"`
 
-	// The port that will be exposed by this service.
+	// The port that will be exposed by this service. // service外露的端口
 	Port int32 `json:"port" protobuf:"varint,3,opt,name=port"`
 
-	// Number or name of the port to access on the pods targeted by the service.
-	// Number must be in the range 1 to 65535. Name must be an IANA_SVC_NAME.
+	// Number or name of the port to access on the pods targeted by the service. // service所指向pod的端口号或名字。（数字代表端口号，字符串代表名字）
+	// Number must be in the range 1 to 65535. Name must be an IANA_SVC_NAME. // 数字取值范围是[1,65535]。
 	// If this is a string, it will be looked up as a named port in the
 	// target Pod's container ports. If this is not specified, the value
-	// of the 'port' field is used (an identity map).
+	// of the 'port' field is used (an identity map). // 如果未指定，则默认与Port一致（也就是说pod使用哪个端对外提供服务，那么service就暴露哪个端口出去）
 	// This field is ignored for services with clusterIP=None, and should be
 	// omitted or set equal to the 'port' field.
 	// More info: https://kubernetes.io/docs/concepts/services-networking/service/#defining-a-service
 	// +optional
 	TargetPort intstr.IntOrString `json:"targetPort,omitempty" protobuf:"bytes,4,opt,name=targetPort"`
 
-	// The port on each node on which this service is exposed when type=NodePort or LoadBalancer.
+	// The port on each node on which this service is exposed when type=NodePort or LoadBalancer. // 当service类型为NodePort或LoadBalancer时，（表示service将在集群外可见，需要Node上开放一个端口），表示Node上的端口
 	// Usually assigned by the system. If specified, it will be allocated to the service
-	// if unused or else creation of the service will fail.
-	// Default is to auto-allocate a port if the ServiceType of this Service requires one.
+	// if unused or else creation of the service will fail. //（怀疑此处错误，就该把unused --> used）如果指定service将在每个node上分配这个端口，如果端口已被使用则创建service会失败。
+	// Default is to auto-allocate a port if the ServiceType of this Service requires one. // 默认自动分配一个NodePort
 	// More info: https://kubernetes.io/docs/concepts/services-networking/service/#type-nodeport
 	// +optional
 	NodePort int32 `json:"nodePort,omitempty" protobuf:"varint,5,opt,name=nodePort"`
