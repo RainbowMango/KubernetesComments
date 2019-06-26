@@ -137,20 +137,20 @@ func New(
 
 	serviceInformer.Informer().AddEventHandlerWithResyncPeriod(
 		cache.ResourceEventHandlerFuncs{
-			AddFunc: func(cur interface{}) {
+			AddFunc: func(cur interface{}) { // service添加事件
 				svc, ok := cur.(*v1.Service)
-				if ok && (wantsLoadBalancer(svc) || needsCleanup(svc)) {
+				if ok && (wantsLoadBalancer(svc) || needsCleanup(svc)) { // 如果service类型是loadbalancer,或者service将要被删除(且有lb资源未删除), 把service添加进队列
 					s.enqueueService(cur)
 				}
 			},
-			UpdateFunc: func(old, cur interface{}) {
+			UpdateFunc: func(old, cur interface{}) { // 如果service需要更新或需要清理,则添加进队列
 				oldSvc, ok1 := old.(*v1.Service)
 				curSvc, ok2 := cur.(*v1.Service)
 				if ok1 && ok2 && (s.needsUpdate(oldSvc, curSvc) || needsCleanup(curSvc)) {
 					s.enqueueService(cur)
 				}
 			},
-			DeleteFunc: func(old interface{}) {
+			DeleteFunc: func(old interface{}) { // 如果启用了ServiceLoadBalancerFinalizer特性,则不需要处理删除事件,否则添加进队列
 				if utilfeature.DefaultFeatureGate.Enabled(kubefeatures.ServiceLoadBalancerFinalizer) {
 					// No need to handle deletion event if finalizer feature gate is
 					// enabled. Because the deletion would be handled by the update
@@ -172,13 +172,13 @@ func New(
 }
 
 // obj could be an *v1.Service, or a DeletionFinalStateUnknown marker item.
-func (s *ServiceController) enqueueService(obj interface{}) {
-	key, err := controller.KeyFunc(obj)
+func (s *ServiceController) enqueueService(obj interface{}) { // 将service对象的key值加入队列
+	key, err := controller.KeyFunc(obj) // 获取对象的key值(该key值为etcd中存储的key值,使用此值查询)
 	if err != nil {
 		runtime.HandleError(fmt.Errorf("couldn't get key for object %#v: %v", obj, err))
 		return
 	}
-	s.queue.Add(key)
+	s.queue.Add(key) // 加入队列的为key值
 }
 
 // Run starts a background goroutine that watches for changes to services that
@@ -202,7 +202,7 @@ func (s *ServiceController) Run(stopCh <-chan struct{}, workers int) {
 		return
 	}
 
-	for i := 0; i < workers; i++ {
+	for i := 0; i < workers; i++ { // 启动worker
 		go wait.Until(s.worker, time.Second, stopCh)
 	}
 
@@ -214,7 +214,7 @@ func (s *ServiceController) Run(stopCh <-chan struct{}, workers int) {
 // worker runs a worker thread that just dequeues items, processes them, and marks them done.
 // It enforces that the syncHandler is never invoked concurrently with the same key.
 func (s *ServiceController) worker() {
-	for s.processNextWorkItem() {
+	for s.processNextWorkItem() { // 只要处理不出错(即不返回false),则继续处理
 	}
 }
 
@@ -227,12 +227,12 @@ func (s *ServiceController) processNextWorkItem() bool {
 
 	err := s.syncService(key.(string))
 	if err == nil {
-		s.queue.Forget(key)
+		s.queue.Forget(key) // 处理完毕,通知队列删除元素
 		return true
 	}
 
 	runtime.HandleError(fmt.Errorf("error processing service %v (will retry): %v", key, err))
-	s.queue.AddRateLimited(key)
+	s.queue.AddRateLimited(key) // 出错后再次将元素添加到队列(即,下次重试)
 	return true
 }
 
@@ -300,7 +300,7 @@ func (s *ServiceController) syncLoadBalancerIfNeeded(service *v1.Service, key st
 	var op loadBalancerOperation
 	var err error
 
-	if !wantsLoadBalancer(service) || needsCleanup(service) {
+	if !wantsLoadBalancer(service) || needsCleanup(service) { // 删除loadbalancer(如果service不需要loadbalancer,这里也强制删除一把)
 		// Delete the load balancer if service no longer wants one, or if service needs cleanup.
 		op = deleteLoadBalancer
 		newStatus = &v1.LoadBalancerStatus{}
@@ -308,7 +308,7 @@ func (s *ServiceController) syncLoadBalancerIfNeeded(service *v1.Service, key st
 		if err != nil {
 			return op, fmt.Errorf("failed to check if load balancer exists before cleanup: %v", err)
 		}
-		if exists {
+		if exists { // 如果云厂商存在loadbalancer,则调用统一接口删除
 			klog.V(2).Infof("Deleting existing load balancer for service %s", key)
 			s.eventRecorder.Event(service, v1.EventTypeNormal, "DeletingLoadBalancer", "Deleting load balancer")
 			if err := s.balancer.EnsureLoadBalancerDeleted(context.TODO(), s.clusterName, service); err != nil {
@@ -319,11 +319,11 @@ func (s *ServiceController) syncLoadBalancerIfNeeded(service *v1.Service, key st
 		// It will be a no-op if finalizer does not exist.
 		// Note this also clears up finalizer if the cluster is downgraded
 		// from a version that attaches finalizer to a version that doesn't.
-		if err := s.removeFinalizer(service); err != nil {
+		if err := s.removeFinalizer(service); err != nil { // 删除厂商的loadbalancer后,删除service对象中的finalizer
 			return op, fmt.Errorf("failed to remove load balancer cleanup finalizer: %v", err)
 		}
 		s.eventRecorder.Event(service, v1.EventTypeNormal, "DeletedLoadBalancer", "Deleted load balancer")
-	} else {
+	} else { // 非删除loadbalancer场景,检查一下loadbalancer是否还健在
 		// Create or update the load balancer if service wants one.
 		op = ensureLoadBalancer
 		klog.V(2).Infof("Ensuring load balancer for service %s", key)
@@ -771,7 +771,7 @@ func (s *ServiceController) processLoadBalancerDelete(service *v1.Service, key s
 }
 
 // addFinalizer patches the service to add finalizer.
-func (s *ServiceController) addFinalizer(service *v1.Service) error {
+func (s *ServiceController) addFinalizer(service *v1.Service) error { // 添加finalizer到service
 	if servicehelper.HasLBFinalizer(service) {
 		return nil
 	}
@@ -786,7 +786,7 @@ func (s *ServiceController) addFinalizer(service *v1.Service) error {
 }
 
 // removeFinalizer patches the service to remove finalizer.
-func (s *ServiceController) removeFinalizer(service *v1.Service) error {
+func (s *ServiceController) removeFinalizer(service *v1.Service) error { // 删除service metadata域中的Finalizer
 	if !servicehelper.HasLBFinalizer(service) {
 		return nil
 	}

@@ -190,11 +190,11 @@ type ObjectMeta struct {
 	// +optional
 	CreationTimestamp Time `json:"creationTimestamp,omitempty" protobuf:"bytes,8,opt,name=creationTimestamp"`
 
-	// DeletionTimestamp is RFC 3339 date and time at which this resource will be deleted. This  // DeletionTimestamp是一个时间, 表示当前资源会在该时间删除(准确讲是在该时间到来时来始删除)
+	// DeletionTimestamp is RFC 3339 date and time at which this resource will be deleted. This  // DeletionTimestamp是一个时间, 表示当前资源会在该时间删除(准确讲是在该时间到来时开始删除)
 	// field is set by the server when a graceful deletion is requested by the user, and is not  // 这个时间是在客户端请求优雅删除时被server设置的,并不是被客户端设置(客户端只关注发送删除请求,而服务端会标记该时间,异步删除)
 	// directly settable by a client. The resource is expected to be deleted (no longer visible
 	// from resource lists, and not reachable by name) after the time in this field, once the
-	// finalizers list is empty. As long as the finalizers list contains items, deletion is blocked. // 时间到来后,如果finalizers列表不为空,则开始删除资源。否则删除会被阻塞。
+	// finalizers list is empty. As long as the finalizers list contains items, deletion is blocked. // 时间到来后,如果finalizers列表不为空,则开始删除资源。对象需要在删除资源后再删除。
 	// Once the deletionTimestamp is set, this value may not be unset or be set further into the
 	// future, although it may be shortened or the resource may be deleted prior to this time.
 	// For example, a user may request that a pod is deleted in 30 seconds. The Kubelet will react

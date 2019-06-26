@@ -84,7 +84,7 @@ func Forever(f func(), period time.Duration) {
 // Until is syntactic sugar on top of JitterUntil with zero jitter factor and
 // with sliding = true (which means the timer for period starts after the f
 // completes).
-func Until(f func(), period time.Duration, stopCh <-chan struct{}) {
+func Until(f func(), period time.Duration, stopCh <-chan struct{}) { // 周期性执行函数f. (函数f两次执行间隔为period 加上函数执行时间)
 	JitterUntil(f, period, 0.0, true, stopCh)
 }
 
@@ -117,19 +117,19 @@ func NonSlidingUntilWithContext(ctx context.Context, f func(context.Context), pe
 	JitterUntilWithContext(ctx, f, period, 0.0, false)
 }
 
-// JitterUntil loops until stop channel is closed, running f every period.
+// JitterUntil loops until stop channel is closed, running f every period. // 周期性执行函数f
 //
-// If jitterFactor is positive, the period is jittered before every run of f.
-// If jitterFactor is not positive, the period is unchanged and not jittered.
+// If jitterFactor is positive, the period is jittered before every run of f. // 如果jitterFactor(抖动因子)为正数,则会跟据抖动因子计算周期
+// If jitterFactor is not positive, the period is unchanged and not jittered. // 如果jitterFactor为负数,抖动因子维持原周期不变
 //
-// If sliding is true, the period is computed after f runs. If it is false then
+// If sliding is true, the period is computed after f runs. If it is false then // 如果sliding(滑动模式启动),则周期在函数f执行结束后重新计时,否则函数f执行时间也会计算在内
 // period includes the runtime for f.
 //
 // Close stopCh to stop. f may not be invoked if stop channel is already
 // closed. Pass NeverStop to if you don't want it stop.
 func JitterUntil(f func(), period time.Duration, jitterFactor float64, sliding bool, stopCh <-chan struct{}) {
 	var t *time.Timer
-	var sawTimeout bool
+	var sawTimeout bool // 表示函数f的执行时间是否超过了period ，如果超过则被认为超时
 
 	for {
 		select {
@@ -139,11 +139,11 @@ func JitterUntil(f func(), period time.Duration, jitterFactor float64, sliding b
 		}
 
 		jitteredPeriod := period
-		if jitterFactor > 0.0 {
+		if jitterFactor > 0.0 { // 如果抖动因子大于0,则跟据抖动因子计算抖动周期,否则抖动周期维持原值,即period.
 			jitteredPeriod = Jitter(period, jitterFactor)
 		}
 
-		if !sliding {
+		if !sliding { // 如果不滑动,则计时从函数f执行之前开始计时
 			t = resetOrReuseTimer(t, jitteredPeriod, sawTimeout)
 		}
 
@@ -152,16 +152,16 @@ func JitterUntil(f func(), period time.Duration, jitterFactor float64, sliding b
 			f()
 		}()
 
-		if sliding {
+		if sliding { // 如果滑动模式启动,则函数执行结束后开始计时,等待一个jitteredPeriod时间
 			t = resetOrReuseTimer(t, jitteredPeriod, sawTimeout)
 		}
 
-		// NOTE: b/c there is no priority selection in golang
-		// it is possible for this to race, meaning we could
+		// NOTE: b/c there is no priority selection in golang  // (这段注释有意思),因为select的多个case语句没有优先级,是随机检查的,所以当stopCh和t.C同时有数据时,有可能先处理case <-t.C, 这样有可能f会再被调用一次
+		// it is possible for this to race, meaning we could   // 为了避免这个问题,所以在for循环开始处又检查一次stopCh.
 		// trigger t.C and stopCh, and t.C select falls through.
 		// In order to mitigate we re-check stopCh at the beginning
 		// of every loop to prevent extra executions of f().
-		select {
+		select { // 等待定时结束
 		case <-stopCh:
 			return
 		case <-t.C:
@@ -186,13 +186,13 @@ func JitterUntilWithContext(ctx context.Context, f func(context.Context), period
 // Jitter returns a time.Duration between duration and duration + maxFactor *
 // duration.
 //
-// This allows clients to avoid converging on periodic behavior. If maxFactor
+// This allows clients to avoid converging on periodic behavior. If maxFactor //
 // is 0.0, a suggested default value will be chosen.
-func Jitter(duration time.Duration, maxFactor float64) time.Duration {
+func Jitter(duration time.Duration, maxFactor float64) time.Duration { // 计算随机抖动值
 	if maxFactor <= 0.0 {
 		maxFactor = 1.0
 	}
-	wait := duration + time.Duration(rand.Float64()*maxFactor*float64(duration))
+	wait := duration + time.Duration(rand.Float64()*maxFactor*float64(duration)) //
 	return wait
 }
 
@@ -496,7 +496,7 @@ func resetOrReuseTimer(t *time.Timer, d time.Duration, sawTimeout bool) *time.Ti
 	if t == nil {
 		return time.NewTimer(d)
 	}
-	if !t.Stop() && !sawTimeout {
+	if !t.Stop() && !sawTimeout { //
 		<-t.C
 	}
 	t.Reset(d)

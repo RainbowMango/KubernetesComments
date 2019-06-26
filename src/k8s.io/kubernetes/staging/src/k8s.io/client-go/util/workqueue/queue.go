@@ -24,12 +24,12 @@ import (
 )
 
 type Interface interface {
-	Add(item interface{})
-	Len() int
-	Get() (item interface{}, shutdown bool)
-	Done(item interface{})
-	ShutDown()
-	ShuttingDown() bool
+	Add(item interface{})					// 队列中添加一个元素,任意类型
+	Len() int								// 队列长度
+	Get() (item interface{}, shutdown bool) // 从队列中获取一个元素，返回元素和队列是否已关闭标识（队列返回元素后并不会把元素从队列中删除）
+	Done(item interface{})                  // 告知队列该元素已处理完了（此时队列才把元素从队列中删除）
+	ShutDown()                              // 关闭队列
+	ShuttingDown() bool                     // 查询队列是否正在关闭
 }
 
 // New constructs a new work queue (see the package comment).
@@ -66,10 +66,10 @@ type Type struct {
 	// queue defines the order in which we will work on items. Every
 	// element of queue should be in the dirty set and not in the
 	// processing set.
-	queue []t
+	queue []t // 队列的核心，存储所有元素，worker按照顺序处理元素
 
 	// dirty defines all of the items that need to be processed.
-	dirty set
+	dirty set // 元素集合，为方便元素插入时快速查看是否已在队列而设置（set取义为无重复的集合，本身为map数据结构）
 
 	// Things that are currently being processed are in the processing set.
 	// These things may be simultaneously in the dirty set. When we finish
