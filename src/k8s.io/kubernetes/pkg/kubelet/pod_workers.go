@@ -296,7 +296,7 @@ func killPodNow(podWorkers PodWorkers, recorder record.EventRecorder) eviction.K
 		gracePeriod := int64(0)
 		if gracePeriodOverride != nil {
 			gracePeriod = *gracePeriodOverride
-		} else if pod.Spec.TerminationGracePeriodSeconds != nil {
+		} else if pod.Spec.TerminationGracePeriodSeconds != nil {  // 因为Pod创建时已经使用默认值初始化过(仅当没有设置时才会使用默认值初始化),所以此处直接取值即可,不用管默认值
 			gracePeriod = *pod.Spec.TerminationGracePeriodSeconds
 		}
 

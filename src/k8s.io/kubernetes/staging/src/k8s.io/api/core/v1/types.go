@@ -2850,12 +2850,12 @@ type PodSpec struct {
 	// +optional
 	RestartPolicy RestartPolicy `json:"restartPolicy,omitempty" protobuf:"bytes,3,opt,name=restartPolicy,casttype=RestartPolicy"`
 	// Optional duration in seconds the pod needs to terminate gracefully. May be decreased in delete request.
-	// Value must be non-negative integer. The value zero indicates delete immediately.
-	// If this value is nil, the default grace period will be used instead.
-	// The grace period is the duration in seconds after the processes running in the pod are sent
+	// Value must be non-negative integer. The value zero indicates delete immediately. // 必须为非负整数,零值代表立即停止
+	// If this value is nil, the default grace period will be used instead. // 如果value为nil,则使用默认值
+	// The grace period is the duration in seconds after the processes running in the pod are sent // 优雅周期是指Pod中的进程被强制停止后的持续时间.
 	// a termination signal and the time when the processes are forcibly halted with a kill signal.
-	// Set this value longer than the expected cleanup time for your process.
-	// Defaults to 30 seconds.
+	// Set this value longer than the expected cleanup time for your process. // 应该设置一个比实际资源清理更长的时间 。
+	// Defaults to 30 seconds. // 默认值为30s
 	// +optional
 	TerminationGracePeriodSeconds *int64 `json:"terminationGracePeriodSeconds,omitempty" protobuf:"varint,4,opt,name=terminationGracePeriodSeconds"`
 	// Optional duration in seconds the pod may be active on the node relative to
