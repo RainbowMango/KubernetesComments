@@ -67,13 +67,13 @@ func init() {
 	prometheus.MustRegister(initCounter)
 }
 
-// Config contains the configuration for a given Cache.
+// Config contains the configuration for a given Cache. // Cache 配置信息
 type Config struct {
 	// Maximum size of the history cached in memory.
 	CacheCapacity int
 
 	// An underlying storage.Interface.
-	Storage storage.Interface
+	Storage storage.Interface // 存储相关接口
 
 	// An underlying storage.Versioner.
 	Versioner storage.Versioner
@@ -90,7 +90,7 @@ type Config struct {
 
 	// TriggerPublisherFunc is used for optimizing amount of watchers that
 	// needs to process an incoming event.
-	TriggerPublisherFunc storage.TriggerPublisherFunc
+	TriggerPublisherFunc storage.TriggerPublisherFunc // 从众多watcher中选择需要处理消息的watcher
 
 	// NewFunc is a function that creates new empty object storing a object of type Type.
 	NewFunc func() runtime.Object
@@ -224,11 +224,11 @@ type Cacher struct {
 
 	sync.RWMutex
 
-	// Before accessing the cacher's cache, wait for the ready to be ok.
-	// This is necessary to prevent users from accessing structures that are
+	// Before accessing the cacher's cache, wait for the ready to be ok. // 需要等待read变为ok后才可以访问cacher的缓存
+	// This is necessary to prevent users from accessing structures that are // 防止用户在cacher初始化完成前访问
 	// uninitialized or are being repopulated right now.
-	// ready needs to be set to false when the cacher is paused or stopped.
-	// ready needs to be set to true when the cacher is ready to use after
+	// ready needs to be set to false when the cacher is paused or stopped. // 当cacher 暂停或停止后,需要置为false
+	// ready needs to be set to true when the cacher is ready to use after  // 当cacher 初始化完成可以使用时,需要置为true
 	// initialization.
 	ready *ready
 
