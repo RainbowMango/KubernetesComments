@@ -218,19 +218,19 @@ type ObjectMeta struct {
 	// +optional
 	DeletionGracePeriodSeconds *int64 `json:"deletionGracePeriodSeconds,omitempty" protobuf:"varint,10,opt,name=deletionGracePeriodSeconds"`
 
-	// Map of string keys and values that can be used to organize and categorize
-	// (scope and select) objects. May match selectors of replication controllers
+	// Map of string keys and values that can be used to organize and categorize // 字符串组成的key-value对,用于组织和分类.
+	// (scope and select) objects. May match selectors of replication controllers // 可以被controller和service筛选
 	// and services.
 	// More info: http://kubernetes.io/docs/user-guide/labels
 	// +optional
-	Labels map[string]string `json:"labels,omitempty" protobuf:"bytes,11,rep,name=labels"`
+	Labels map[string]string `json:"labels,omitempty" protobuf:"bytes,11,rep,name=labels"` // Label用于kubernetes内部,这有别于Annotation,为了内部检索性能考虑,所以将二者分开
 
 	// Annotations is an unstructured key value map stored with a resource that may be // Annotations 类似label,但略有不同,比较随意,可以用于记录一些比如版本、build信息
 	// set by external tools to store and retrieve arbitrary metadata. They are not
 	// queryable and should be preserved when modifying objects. // Annotations 不能用于查询（不像label一样用于选择指定对象）
 	// More info: http://kubernetes.io/docs/user-guide/annotations
 	// +optional
-	Annotations map[string]string `json:"annotations,omitempty" protobuf:"bytes,12,rep,name=annotations"`
+	Annotations map[string]string `json:"annotations,omitempty" protobuf:"bytes,12,rep,name=annotations"` // Annotation用于外部工具的查找,这有别于Lable.
 
 	// List of objects depended by this object. If ALL objects in the list have
 	// been deleted, this object will be garbage collected. If this object is managed by a controller,
