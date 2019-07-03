@@ -55,38 +55,38 @@ type dynamicSharedInformerFactory struct {
 	namespace     string
 
 	lock      sync.Mutex
-	informers map[schema.GroupVersionResource]informers.GenericInformer
+	informers map[schema.GroupVersionResource]informers.GenericInformer // 资源-informer表,每个资源一个informer
 	// startedInformers is used for tracking which informers have been started.
 	// This allows Start() to be called multiple times safely.
-	startedInformers map[schema.GroupVersionResource]bool
+	startedInformers map[schema.GroupVersionResource]bool // 资源-bool表,标记每个资源的informer开启状态
 	tweakListOptions TweakListOptionsFunc
 }
 
 var _ DynamicSharedInformerFactory = &dynamicSharedInformerFactory{}
 
-func (f *dynamicSharedInformerFactory) ForResource(gvr schema.GroupVersionResource) informers.GenericInformer {
+func (f *dynamicSharedInformerFactory) ForResource(gvr schema.GroupVersionResource) informers.GenericInformer { // 获取某个资源的informer
 	f.lock.Lock()
 	defer f.lock.Unlock()
 
 	key := gvr
-	informer, exists := f.informers[key]
+	informer, exists := f.informers[key] // 先查询,如果已存在,则直接返回
 	if exists {
 		return informer
 	}
 
-	informer = NewFilteredDynamicInformer(f.client, gvr, f.namespace, f.defaultResync, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
+	informer = NewFilteredDynamicInformer(f.client, gvr, f.namespace, f.defaultResync, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions) // 如果不存在,则创建一个再返回
 	f.informers[key] = informer
 
 	return informer
 }
 
 // Start initializes all requested informers.
-func (f *dynamicSharedInformerFactory) Start(stopCh <-chan struct{}) {
+func (f *dynamicSharedInformerFactory) Start(stopCh <-chan struct{}) { // 启动所有的informer
 	f.lock.Lock()
 	defer f.lock.Unlock()
 
 	for informerType, informer := range f.informers {
-		if !f.startedInformers[informerType] {
+		if !f.startedInformers[informerType] { // 如果该资源没有启动informer则开启协程启动.
 			go informer.Informer().Run(stopCh)
 			f.startedInformers[informerType] = true
 		}
@@ -94,8 +94,8 @@ func (f *dynamicSharedInformerFactory) Start(stopCh <-chan struct{}) {
 }
 
 // WaitForCacheSync waits for all started informers' cache were synced.
-func (f *dynamicSharedInformerFactory) WaitForCacheSync(stopCh <-chan struct{}) map[schema.GroupVersionResource]bool {
-	informers := func() map[schema.GroupVersionResource]cache.SharedIndexInformer {
+func (f *dynamicSharedInformerFactory) WaitForCacheSync(stopCh <-chan struct{}) map[schema.GroupVersionResource]bool { // 等待所有已启动的informer 同步
+	informers := func() map[schema.GroupVersionResource]cache.SharedIndexInformer { // 获取已启动的informer
 		f.lock.Lock()
 		defer f.lock.Unlock()
 
