@@ -93,7 +93,7 @@ func ParseGroupResource(gr string) GroupResource {
 
 // GroupVersionResource unambiguously identifies a resource.  It doesn't anonymously include GroupVersion
 // to avoid automatic coercion.  It doesn't use a GroupVersion to avoid custom marshalling
-type GroupVersionResource struct {
+type GroupVersionResource struct { // 可以唯一标识一个resource的组合
 	Group    string
 	Version  string
 	Resource string
@@ -103,15 +103,15 @@ func (gvr GroupVersionResource) Empty() bool {
 	return len(gvr.Group) == 0 && len(gvr.Version) == 0 && len(gvr.Resource) == 0
 }
 
-func (gvr GroupVersionResource) GroupResource() GroupResource {
+func (gvr GroupVersionResource) GroupResource() GroupResource { // 获取Group+Resource
 	return GroupResource{Group: gvr.Group, Resource: gvr.Resource}
 }
 
-func (gvr GroupVersionResource) GroupVersion() GroupVersion {
+func (gvr GroupVersionResource) GroupVersion() GroupVersion { // 获取Group+Version
 	return GroupVersion{Group: gvr.Group, Version: gvr.Version}
 }
 
-func (gvr GroupVersionResource) String() string {
+func (gvr GroupVersionResource) String() string { // 字符串输出,一般用于URL拼接
 	return strings.Join([]string{gvr.Group, "/", gvr.Version, ", Resource=", gvr.Resource}, "")
 }
 
