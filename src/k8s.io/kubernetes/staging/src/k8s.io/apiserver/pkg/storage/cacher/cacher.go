@@ -272,14 +272,14 @@ type Cacher struct {
 
 	// dispatching determines whether there is currently dispatching of
 	// any event in flight.
-	dispatching bool
+	dispatching bool // 是否正在分发事件标志
 	// watchersBuffer is a list of watchers potentially interested in currently
 	// dispatched event.
 	watchersBuffer []*cacheWatcher
 	// watchersToStop is a list of watchers that were supposed to be stopped
 	// during current dispatching, but stopping was deferred to the end of
 	// dispatching that event to avoid race with closing channels in watchers.
-	watchersToStop []*cacheWatcher
+	watchersToStop []*cacheWatcher // 存放事件分发过程中需要停止的watcher,在事件分发结束后再处理,以避免watcher停止和接收事件冲突
 	// Maintain a timeout queue to send the bookmark event before the watcher times out.
 	bookmarkWatchers *watcherBookmarkTimeBuckets
 	// watchBookmark feature-gate
@@ -887,7 +887,7 @@ func (c *Cacher) terminateAllWatchers() {
 }
 
 func (c *Cacher) stopWatcherThreadUnsafe(watcher *cacheWatcher) {
-	if c.dispatching {
+	if c.dispatching { // 如果正在分发,则先排队(因为分发过程中,watcher也有可能正在处理事件)
 		c.watchersToStop = append(c.watchersToStop, watcher)
 	} else {
 		watcher.stop()
