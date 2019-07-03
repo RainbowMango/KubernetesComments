@@ -218,9 +218,9 @@ type Cacher struct {
 	// HighWaterMarks for performance debugging.
 	// Important: Since HighWaterMark is using sync/atomic, it has to be at the top of the struct due to a bug on 32-bit platforms
 	// See: https://golang.org/pkg/sync/atomic/ for more information
-	incomingHWM storage.HighWaterMark
+	incomingHWM storage.HighWaterMark  // 最高水位标记,该值记录历史上最多存在缓存中的消息(如果该值持续变大,说明分发性能低)
 	// Incoming events that should be dispatched to watchers.
-	incoming chan watchCacheEvent
+	incoming chan watchCacheEvent  // 待分发的消息
 
 	sync.RWMutex
 
@@ -735,11 +735,11 @@ func (c *Cacher) triggerValues(event *watchCacheEvent) ([]string, bool) {
 }
 
 func (c *Cacher) processEvent(event *watchCacheEvent) {
-	if curLen := int64(len(c.incoming)); c.incomingHWM.Update(curLen) {
+	if curLen := int64(len(c.incoming)); c.incomingHWM.Update(curLen) { // 每接收一个事件，判断一下当前水位，如果历史最高水位增加了，打印一行日志，方便性能诊断
 		// Monitor if this gets backed up, and how much.
 		klog.V(1).Infof("cacher (%v): %v objects queued in incoming channel.", c.objectType.String(), curLen)
 	}
-	c.incoming <- *event
+	c.incoming <- *event // 将事件直接投入管道中（Question: 该管道当前最大容量为100，如果超过100个消息滞留，应该会阻塞调用方）
 }
 
 func (c *Cacher) dispatchEvents() {

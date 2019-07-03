@@ -76,7 +76,7 @@ func NoNamespaceKeyFunc(prefix string, obj runtime.Object) (string, error) {
 type HighWaterMark int64
 
 // Update returns true if and only if 'current' is the highest value ever seen.
-func (hwm *HighWaterMark) Update(current int64) bool {
+func (hwm *HighWaterMark) Update(current int64) bool { // 如果当前值大于最高水位,则将当前值记入最高水位并返回true，否则返回false
 	for {
 		old := atomic.LoadInt64((*int64)(hwm))
 		if current <= old {
