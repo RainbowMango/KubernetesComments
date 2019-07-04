@@ -160,18 +160,18 @@ func (c *controller) processLoop() {
 	}
 }
 
-// ResourceEventHandler can handle notifications for events that happen to a
+// ResourceEventHandler can handle notifications for events that happen to a // ResourceEventHandler用于接收资源对象的通知,只能接收,不能返回错误
 // resource. The events are informational only, so you can't return an
 // error.
-//  * OnAdd is called when an object is added.
-//  * OnUpdate is called when an object is modified. Note that oldObj is the
-//      last known state of the object-- it is possible that several changes
+//  * OnAdd is called when an object is added. // 资源添加时触发(注: 还有可能是resync时触发)
+//  * OnUpdate is called when an object is modified. Note that oldObj is the // 资源被修改时触发.
+//      last known state of the object-- it is possible that several changes // oldObj是旧的状态,有可能中间经过了多次变化,不能通过它来看每次变化
 //      were combined together, so you can't use this to see every single
-//      change. OnUpdate is also called when a re-list happens, and it will
+//      change. OnUpdate is also called when a re-list happens, and it will  // re-list时会触发update,尽管没发生改变
 //      get called even if nothing changed. This is useful for periodically
 //      evaluating or syncing something.
-//  * OnDelete will get the final state of the item if it is known, otherwise
-//      it will get an object of type DeletedFinalStateUnknown. This can
+//  * OnDelete will get the final state of the item if it is known, otherwise // 资源的删除前的最终状态,或者DeletedFinalStateUnknown(资源已被删除,并不知道状态)
+//      it will get an object of type DeletedFinalStateUnknown. This can      // 当watch停止后,错过了删除事件会出现这种情况
 //      happen if the watch is closed and misses the delete event and we don't
 //      notice the deletion until the subsequent re-list.
 type ResourceEventHandler interface {
@@ -183,28 +183,28 @@ type ResourceEventHandler interface {
 // ResourceEventHandlerFuncs is an adaptor to let you easily specify as many or
 // as few of the notification functions as you want while still implementing
 // ResourceEventHandler.
-type ResourceEventHandlerFuncs struct {
+type ResourceEventHandlerFuncs struct { // ResourceEventHandler结构体,可以指定全部或部分处理函数
 	AddFunc    func(obj interface{})
 	UpdateFunc func(oldObj, newObj interface{})
 	DeleteFunc func(obj interface{})
 }
 
 // OnAdd calls AddFunc if it's not nil.
-func (r ResourceEventHandlerFuncs) OnAdd(obj interface{}) {
+func (r ResourceEventHandlerFuncs) OnAdd(obj interface{}) { // 如果Add处理函数非空,则触发
 	if r.AddFunc != nil {
 		r.AddFunc(obj)
 	}
 }
 
 // OnUpdate calls UpdateFunc if it's not nil.
-func (r ResourceEventHandlerFuncs) OnUpdate(oldObj, newObj interface{}) {
+func (r ResourceEventHandlerFuncs) OnUpdate(oldObj, newObj interface{}) { // 如果Update处理函数非空,则触发
 	if r.UpdateFunc != nil {
 		r.UpdateFunc(oldObj, newObj)
 	}
 }
 
 // OnDelete calls DeleteFunc if it's not nil.
-func (r ResourceEventHandlerFuncs) OnDelete(obj interface{}) {
+func (r ResourceEventHandlerFuncs) OnDelete(obj interface{}) { // 如果Delete处理函数非空,则触发
 	if r.DeleteFunc != nil {
 		r.DeleteFunc(obj)
 	}
