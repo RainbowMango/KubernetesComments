@@ -59,10 +59,10 @@ type sharedInformerFactory struct {
 	defaultResync    time.Duration
 	customResync     map[reflect.Type]time.Duration
 
-	informers map[reflect.Type]cache.SharedIndexInformer
+	informers map[reflect.Type]cache.SharedIndexInformer  // 存储所有的informer
 	// startedInformers is used for tracking which informers have been started.
 	// This allows Start() to be called multiple times safely.
-	startedInformers map[reflect.Type]bool
+	startedInformers map[reflect.Type]bool // 记录informer是否已启动
 }
 
 // WithCustomResyncConfig sets a custom resync period for the specified informer types.
@@ -128,7 +128,7 @@ func (f *sharedInformerFactory) Start(stopCh <-chan struct{}) {
 	f.lock.Lock()
 	defer f.lock.Unlock()
 
-	for informerType, informer := range f.informers {
+	for informerType, informer := range f.informers { // 遍历所有informer,没有启动的informer专门开启一个协程来启动
 		if !f.startedInformers[informerType] {
 			go informer.Run(stopCh)
 			f.startedInformers[informerType] = true

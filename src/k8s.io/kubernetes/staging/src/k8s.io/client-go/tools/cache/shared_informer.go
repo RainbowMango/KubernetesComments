@@ -31,22 +31,22 @@ import (
 	"k8s.io/klog"
 )
 
-// SharedInformer provides eventually consistent linkage of its
+// SharedInformer provides eventually consistent linkage of its // SharedInformer提供客户端和一系列对象的一致性保证。
 // clients to the authoritative state of a given collection of
-// objects.  An object is identified by its API group, kind/resource,
-// namespace, and name.  One SharedInfomer provides linkage to objects
-// of a particular API group and kind/resource.  The linked object
+// objects.  An object is identified by its API group, kind/resource, // 对象使用API group、kind/resource、namespace和name进行识别（使用其中的组合）
+// namespace, and name.  One SharedInfomer provides linkage to objects // 每个SharedInformer 对应某个特定类型的资源
+// of a particular API group and kind/resource.  The linked object  // SharedInformer管理的对象可能进一步跟据namespace、label selector、field selector做细分。
 // collection of a SharedInformer may be further restricted to one
 // namespace and/or by label selector and/or field selector.
 //
-// The authoritative state of an object is what apiservers provide
+// The authoritative state of an object is what apiservers provide  // 对象的权威状态是指apiserver中的状态，可能会有一系列的状态变迁。
 // access to, and an object goes through a strict sequence of states.
-// A state is either "absent" or present with a ResourceVersion and
+// A state is either "absent" or present with a ResourceVersion and // 状态要么是"缺席"（未知），要么是其他合适的状态
 // other appropriate content.
 //
-// A SharedInformer maintains a local cache, exposed by Store(), of
-// the state of each relevant object.  This cache is eventually
-// consistent with the authoritative state.  This means that, unless
+// A SharedInformer maintains a local cache, exposed by Store(), of  // SharedInformer 维护了一个本地缓存（通过GetStore()对外暴露），来保存相关对象的状态。
+// the state of each relevant object.  This cache is eventually      // 缓存中的对象状态与apiserver中的一致
+// consistent with the authoritative state.  This means that, unless // 除非永久出现连接问题，最终SharedInformer中对象的状态会与api server一致
 // prevented by persistent communication problems, if ever a
 // particular object ID X is authoritatively associated with a state S
 // then for every SharedInformer I whose collection includes (X, S)
@@ -56,67 +56,67 @@ import (
 // absent state meets any restriction by label selector or field
 // selector.
 //
-// As a simple example, if a collection of objects is henceforeth
+// As a simple example, if a collection of objects is henceforeth  // 举个简单的例子，如果某种类型的对象都不变的情况下，SharedInformer缓存中将存储这些对象的副本。
 // unchanging and a SharedInformer is created that links to that
 // collection then that SharedInformer's cache eventually holds an
 // exact copy of that collection (unless it is stopped too soon, the
 // authoritative state service ends, or communication problems between
 // the two persistently thwart achievement).
 //
-// As another simple example, if the local cache ever holds a
+// As another simple example, if the local cache ever holds a     // 另一个例子，如果SharedInformer缓存中某些对象的状态为"non-absent"，且如果对象最终被删除的话，那么本地缓存中也会把它删除。
 // non-absent state for some object ID and the object is eventually
 // removed from the authoritative state then eventually the object is
 // removed from the local cache (unless the SharedInformer is stopped
 // too soon, the authoritative state service emnds, or communication
 // problems persistently thwart the desired result).
 //
-// The keys in Store() are of the form namespace/name for namespaced
+// The keys in Store() are of the form namespace/name for namespaced // 缓存中的对象，namespace/name或name做为key值
 // objects, and are simply the name for non-namespaced objects.
 //
-// A client is identified here by a ResourceEventHandler.  For every
-// update to the SharedInformer's local cache and for every client,
+// A client is identified here by a ResourceEventHandler.  For every // 所谓的客户端也就是ResourceEventHandler。
+// update to the SharedInformer's local cache and for every client,  // SharedInformer缓存的每次更新，都会发通知给客户端，除非SharedInformer停掉。
 // eventually either the SharedInformer is stopped or the client is
-// notified of the update.  These notifications happen after the
+// notified of the update.  These notifications happen after the     // 通知会在写入缓存后且创建完相应的索引后再下发（因为下发通知后马上会来查，此时索引还未建立，查询会失败或等待）
 // corresponding cache update and, in the case of a
-// SharedIndexInformer, after the corresponding index updates.  It is
+// SharedIndexInformer, after the corresponding index updates.  It is  // 发送通知前，可能还会有额外的缓存、索引更新
 // possible that additional cache and index updates happen before such
-// a prescribed notification.  For a given SharedInformer and client,
+// a prescribed notification.  For a given SharedInformer and client,  // SharedInformer 是按照顺序发送通知的。
 // all notifications are delivered sequentially.  For a given
 // SharedInformer, client, and object ID, the notifications are
 // delivered in order.
 //
-// A delete notification exposes the last locally known non-absent
+// A delete notification exposes the last locally known non-absent // 删除通知意味着最后一个“non-absent”状态
 // state, except that its ResourceVersion is replaced with a
 // ResourceVersion in which the object is actually absent.
 type SharedInformer interface {
-	// AddEventHandler adds an event handler to the shared informer using the shared informer's resync
-	// period.  Events to a single handler are delivered sequentially, but there is no coordination
+	// AddEventHandler adds an event handler to the shared informer using the shared informer's resync // 向shared informer中添加一个事件处理者
+	// period.  Events to a single handler are delivered sequentially, but there is no coordination    // 对于单个事件处理者而言，事件是逐个发送的，与其他事件处理者无关
 	// between different handlers.
 	AddEventHandler(handler ResourceEventHandler)
-	// AddEventHandlerWithResyncPeriod adds an event handler to the
-	// shared informer using the specified resync period.  The resync
+	// AddEventHandlerWithResyncPeriod adds an event handler to the // 向shared informer中添加一个事件处理者,同时指定resync周期
+	// shared informer using the specified resync period.  The resync  // resync将把本地缓存中的对象全部按照Add事件发送出去
 	// operation consists of delivering to the handler a create
-	// notification for every object in the informer's local cache; it
+	// notification for every object in the informer's local cache; it // resync不会改变apiserver中的数据
 	// does not add any interactions with the authoritative storage.
 	AddEventHandlerWithResyncPeriod(handler ResourceEventHandler, resyncPeriod time.Duration)
-	// GetStore returns the informer's local cache as a Store.
+	// GetStore returns the informer's local cache as a Store.        // 对外暴露本地缓存
 	GetStore() Store
 	// GetController gives back a synthetic interface that "votes" to start the informer
 	GetController() Controller
-	// Run starts and runs the shared informer, returning after it stops.
+	// Run starts and runs the shared informer, returning after it stops.  // 启动informer,直到停止时才退出,可以使用stopCh退出
 	// The informer will be stopped when stopCh is closed.
 	Run(stopCh <-chan struct{})
-	// HasSynced returns true if the shared informer's store has been
+	// HasSynced returns true if the shared informer's store has been // 标记是否已从apiserver完整的同步过一次数据(跟resync无关)
 	// informed by at least one full LIST of the authoritative state
 	// of the informer's object collection.  This is unrelated to "resync".
 	HasSynced() bool
-	// LastSyncResourceVersion is the resource version observed when last synced with the underlying
+	// LastSyncResourceVersion is the resource version observed when last synced with the underlying // 本地缓存的资源版本,(可能本地缓存每次有数据变更时版本+1)
 	// store. The value returned is not synchronized with access to the underlying store and is not
 	// thread-safe.
 	LastSyncResourceVersion() string
 }
 
-type SharedIndexInformer interface {
+type SharedIndexInformer interface { // 基于SharedInformer生成
 	SharedInformer
 	// AddIndexers add indexers to the informer before it starts.
 	AddIndexers(indexers Indexers) error
@@ -124,7 +124,7 @@ type SharedIndexInformer interface {
 }
 
 // NewSharedInformer creates a new instance for the listwatcher.
-func NewSharedInformer(lw ListerWatcher, objType runtime.Object, resyncPeriod time.Duration) SharedInformer {
+func NewSharedInformer(lw ListerWatcher, objType runtime.Object, resyncPeriod time.Duration) SharedInformer { // 注意:创建SharedInformer实际上创建的是SharedIndexInformer
 	return NewSharedIndexInformer(lw, objType, resyncPeriod, Indexers{})
 }
 
