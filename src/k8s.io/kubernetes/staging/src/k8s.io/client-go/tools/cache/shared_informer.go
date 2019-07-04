@@ -323,7 +323,7 @@ func (s *sharedIndexInformer) GetController() Controller {
 	return &dummyController{informer: s}
 }
 
-func (s *sharedIndexInformer) AddEventHandler(handler ResourceEventHandler) {
+func (s *sharedIndexInformer) AddEventHandler(handler ResourceEventHandler) { // 添加事件处理者，使用默认的resync周期
 	s.AddEventHandlerWithResyncPeriod(handler, s.defaultEventHandlerResyncPeriod)
 }
 
@@ -335,7 +335,7 @@ func determineResyncPeriod(desired, check time.Duration) time.Duration {
 		klog.Warningf("The specified resyncPeriod %v is invalid because this shared informer doesn't support resyncing", desired)
 		return 0
 	}
-	if desired < check {
+	if desired < check { // 意思是listener的同步周期不能小于resyncCheckPeriod的周期
 		klog.Warningf("The specified resyncPeriod %v is being increased to the minimum resyncCheckPeriod %v", desired, check)
 		return check
 	}
@@ -354,16 +354,16 @@ func (s *sharedIndexInformer) AddEventHandlerWithResyncPeriod(handler ResourceEv
 	}
 
 	if resyncPeriod > 0 {
-		if resyncPeriod < minimumResyncPeriod {
+		if resyncPeriod < minimumResyncPeriod { // resync周期不能小于1s,否则性能会有问题
 			klog.Warningf("resyncPeriod %d is too small. Changing it to the minimum allowed value of %d", resyncPeriod, minimumResyncPeriod)
 			resyncPeriod = minimumResyncPeriod
 		}
 
-		if resyncPeriod < s.resyncCheckPeriod {
-			if s.started {
+		if resyncPeriod < s.resyncCheckPeriod {  // 如果新ResourceEventHandler的同步周期比当前值小,则需要更新成小值(越小越精确,取最小者)
+			if s.started { // informer已经启动的情况下不允许更改同步周期,维持原值不变
 				klog.Warningf("resyncPeriod %d is smaller than resyncCheckPeriod %d and the informer has already started. Changing it to %d", resyncPeriod, s.resyncCheckPeriod, s.resyncCheckPeriod)
 				resyncPeriod = s.resyncCheckPeriod
-			} else {
+			} else { // 如果informer还未启动,则更新所有listeners的resync周期,同步更新所有listener的周期
 				// if the event handler's resyncPeriod is smaller than the current resyncCheckPeriod, update
 				// resyncCheckPeriod to match resyncPeriod and adjust the resync periods of all the listeners
 				// accordingly
@@ -375,16 +375,16 @@ func (s *sharedIndexInformer) AddEventHandlerWithResyncPeriod(handler ResourceEv
 
 	listener := newProcessListener(handler, resyncPeriod, determineResyncPeriod(resyncPeriod, s.resyncCheckPeriod), s.clock.Now(), initialBufferSize)
 
-	if !s.started {
+	if !s.started { // 如果informer还未启动,则把listener添加进去就结束了,直接返回
 		s.processor.addListener(listener)
 		return
 	}
 
 	// in order to safely join, we have to
-	// 1. stop sending add/update/delete notifications
-	// 2. do a list against the store
-	// 3. send synthetic "Add" events to the new handler
-	// 4. unblock
+	// 1. stop sending add/update/delete notifications     // 1. 停止当前的通知发送动作
+	// 2. do a list against the store                      // 2. 获取本地缓存中所有的对象列表
+	// 3. send synthetic "Add" events to the new handler   // 3. 将列表以"Add"事件发送给新的handler
+	// 4. unblock                                          // 4. 解锁,继续发送
 	s.blockDeltas.Lock()
 	defer s.blockDeltas.Unlock()
 
@@ -517,26 +517,26 @@ func (p *sharedProcessor) resyncCheckPeriodChanged(resyncCheckPeriod time.Durati
 }
 
 type processorListener struct {
-	nextCh chan interface{}
-	addCh  chan interface{}
+	nextCh chan interface{}  // 从buffer中取数据到这个管道,管道出口为调用事件处理函数
+	addCh  chan interface{}  // 新消息到来时写到这个管道(管道出口为buffer)    notification --> addCh --> pendingNotification --> nextCh --> handler
 
-	handler ResourceEventHandler
+	handler ResourceEventHandler  // 监听者的事件处理函数
 
-	// pendingNotifications is an unbounded ring buffer that holds all notifications not yet distributed.
-	// There is one per listener, but a failing/stalled listener will have infinite pendingNotifications
+	// pendingNotifications is an unbounded ring buffer that holds all notifications not yet distributed. // pendingNotifications是一个环形buffer，保存还没发出的通知
+	// There is one per listener, but a failing/stalled listener will have infinite pendingNotifications // 每个listener一个buffer，如果listener处理消息慢或停掉了，那么消息会一直缓存在buffer中，最终会溢出
 	// added until we OOM.
 	// TODO: This is no worse than before, since reflectors were backed by unbounded DeltaFIFOs, but
 	// we should try to do something better.
 	pendingNotifications buffer.RingGrowing
 
 	// requestedResyncPeriod is how frequently the listener wants a full resync from the shared informer
-	requestedResyncPeriod time.Duration
+	requestedResyncPeriod time.Duration // 期望的resync周期
 	// resyncPeriod is how frequently the listener wants a full resync from the shared informer. This
 	// value may differ from requestedResyncPeriod if the shared informer adjusts it to align with the
 	// informer's overall resync check period.
-	resyncPeriod time.Duration
+	resyncPeriod time.Duration // 实际的resync周期，该值需要与informer的resync周期保持一致
 	// nextResync is the earliest time the listener should get a full resync
-	nextResync time.Time
+	nextResync time.Time // 下次resync的时间
 	// resyncLock guards access to resyncPeriod and nextResync
 	resyncLock sync.Mutex
 }
@@ -556,7 +556,7 @@ func newProcessListener(handler ResourceEventHandler, requestedResyncPeriod, res
 	return ret
 }
 
-func (p *processorListener) add(notification interface{}) {
+func (p *processorListener) add(notification interface{}) { // 每添加一个通知，就把它放到管道中
 	p.addCh <- notification
 }
 
@@ -564,18 +564,18 @@ func (p *processorListener) pop() {
 	defer utilruntime.HandleCrash()
 	defer close(p.nextCh) // Tell .run() to stop
 
-	var nextCh chan<- interface{}
-	var notification interface{}
+	var nextCh chan<- interface{}  // 注意，这里仅仅是声明，还没有创建管道
+	var notification interface{}  // 注意，这里仅仅是声明，此时notification为nil
 	for {
 		select {
-		case nextCh <- notification:
+		case nextCh <- notification: // 分发一个通知，然后从buffer中再取一个
 			// Notification dispatched
 			var ok bool
 			notification, ok = p.pendingNotifications.ReadOne()
 			if !ok { // Nothing to pop
 				nextCh = nil // Disable this select case
 			}
-		case notificationToAdd, ok := <-p.addCh:
+		case notificationToAdd, ok := <-p.addCh: // 如果管道中来一个新数据，第一次将让nextCh指向 p.nextCh，之后直接写到buffer里
 			if !ok {
 				return
 			}
@@ -590,7 +590,7 @@ func (p *processorListener) pop() {
 	}
 }
 
-func (p *processorListener) run() {
+func (p *processorListener) run() { // 启动无限循环，从p.nextCh获取数据，然后发送出去
 	// this call blocks until the channel is closed.  When a panic happens during the notification
 	// we will catch it, **the offending item will be skipped!**, and after a short delay (one second)
 	// the next notification will be attempted.  This is usually better than the alternative of never
@@ -600,7 +600,7 @@ func (p *processorListener) run() {
 		// this gives us a few quick retries before a long pause and then a few more quick retries
 		err := wait.ExponentialBackoff(retry.DefaultRetry, func() (bool, error) {
 			for next := range p.nextCh {
-				switch notification := next.(type) {
+				switch notification := next.(type) { // 跟据不同通知类型，调用相应的回调函数
 				case updateNotification:
 					p.handler.OnUpdate(notification.oldObj, notification.newObj)
 				case addNotification:
@@ -616,7 +616,7 @@ func (p *processorListener) run() {
 		})
 
 		// the only way to get here is if the p.nextCh is empty and closed
-		if err == nil {
+		if err == nil {  // 当走到这里时说明p.nextCh已关闭，即需要停止了，把stopCh关闭，防止Until再次执行
 			close(stopCh)
 		}
 	}, 1*time.Minute, stopCh)
@@ -624,25 +624,25 @@ func (p *processorListener) run() {
 
 // shouldResync deterimines if the listener needs a resync. If the listener's resyncPeriod is 0,
 // this always returns false.
-func (p *processorListener) shouldResync(now time.Time) bool {
+func (p *processorListener) shouldResync(now time.Time) bool { // 跟据时间判断是否需要resync
 	p.resyncLock.Lock()
 	defer p.resyncLock.Unlock()
 
-	if p.resyncPeriod == 0 {
+	if p.resyncPeriod == 0 { // resync周期为0，等同于不同步，返回false。
 		return false
 	}
 
-	return now.After(p.nextResync) || now.Equal(p.nextResync)
+	return now.After(p.nextResync) || now.Equal(p.nextResync) // 如果下次同步时间已过,则返回true
 }
 
-func (p *processorListener) determineNextResync(now time.Time) {
+func (p *processorListener) determineNextResync(now time.Time) { // 计算下次resync的时间，当前时间+同步周期resyncPeriod
 	p.resyncLock.Lock()
 	defer p.resyncLock.Unlock()
 
 	p.nextResync = now.Add(p.resyncPeriod)
 }
 
-func (p *processorListener) setResyncPeriod(resyncPeriod time.Duration) {
+func (p *processorListener) setResyncPeriod(resyncPeriod time.Duration) { // 设置resync周期，内部方法
 	p.resyncLock.Lock()
 	defer p.resyncLock.Unlock()
 
