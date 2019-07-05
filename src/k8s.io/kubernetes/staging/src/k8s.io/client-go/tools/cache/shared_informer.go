@@ -327,7 +327,7 @@ func (s *sharedIndexInformer) AddEventHandler(handler ResourceEventHandler) { //
 	s.AddEventHandlerWithResyncPeriod(handler, s.defaultEventHandlerResyncPeriod)
 }
 
-func determineResyncPeriod(desired, check time.Duration) time.Duration {
+func determineResyncPeriod(desired, check time.Duration) time.Duration { // 跟据当前的resync周期和期望的resync周期计算出最后的resync周期。如果有一方为0，则说明不resync。
 	if desired == 0 {
 		return desired
 	}
@@ -426,39 +426,39 @@ func (s *sharedIndexInformer) HandleDeltas(obj interface{}) error {
 }
 
 type sharedProcessor struct {
-	listenersStarted bool
+	listenersStarted bool  // listener启动标志，所有listener启停状态一致
 	listenersLock    sync.RWMutex
-	listeners        []*processorListener
-	syncingListeners []*processorListener
+	listeners        []*processorListener  // 所有的listener列表
+	syncingListeners []*processorListener  // 需要resync的listener列表
 	clock            clock.Clock
 	wg               wait.Group
 }
 
-func (p *sharedProcessor) addListener(listener *processorListener) {
+func (p *sharedProcessor) addListener(listener *processorListener) { //  添加新的listener
 	p.listenersLock.Lock()
 	defer p.listenersLock.Unlock()
 
 	p.addListenerLocked(listener)
-	if p.listenersStarted {
+	if p.listenersStarted { // 如果其他的listener已经启动，则需要把新加进来的启动
 		p.wg.Start(listener.run)
 		p.wg.Start(listener.pop)
 	}
 }
 
-func (p *sharedProcessor) addListenerLocked(listener *processorListener) {
+func (p *sharedProcessor) addListenerLocked(listener *processorListener) { // 添加新的listener
 	p.listeners = append(p.listeners, listener)
-	p.syncingListeners = append(p.syncingListeners, listener)
+	p.syncingListeners = append(p.syncingListeners, listener) // 每个新加入的listener都加入resync列表中，是为了确保该listener能获取全量信息
 }
 
-func (p *sharedProcessor) distribute(obj interface{}, sync bool) {
+func (p *sharedProcessor) distribute(obj interface{}, sync bool) { // 分发通知，跟据sync(resync)标志决定分发对象
 	p.listenersLock.RLock()
 	defer p.listenersLock.RUnlock()
 
-	if sync {
+	if sync { // resync通知，分发给需要resync的listener
 		for _, listener := range p.syncingListeners {
 			listener.add(obj)
 		}
-	} else {
+	} else { // 非resync通知，发给所有listeners
 		for _, listener := range p.listeners {
 			listener.add(obj)
 		}
@@ -475,18 +475,18 @@ func (p *sharedProcessor) run(stopCh <-chan struct{}) {
 		}
 		p.listenersStarted = true
 	}()
-	<-stopCh
+	<-stopCh  // 启动后就阻塞等待上游关闭指令，唤醒时代表可以关闭所有的listener了
 	p.listenersLock.RLock()
 	defer p.listenersLock.RUnlock()
-	for _, listener := range p.listeners {
+	for _, listener := range p.listeners { // 向所有的listener发送关闭指令
 		close(listener.addCh) // Tell .pop() to stop. .pop() will tell .run() to stop
 	}
-	p.wg.Wait() // Wait for all .pop() and .run() to stop
+	p.wg.Wait() // Wait for all .pop() and .run() to stop // 等待所有的listener关闭
 }
 
 // shouldResync queries every listener to determine if any of them need a resync, based on each
 // listener's resyncPeriod.
-func (p *sharedProcessor) shouldResync() bool {
+func (p *sharedProcessor) shouldResync() bool { // 判断是否需要启动resync。遍历所有的listener，把到了resync时间的listener加入p.syncingListeners列表。只要p.syncingListeners不为空则代表需要启动resync.
 	p.listenersLock.Lock()
 	defer p.listenersLock.Unlock()
 
@@ -500,13 +500,13 @@ func (p *sharedProcessor) shouldResync() bool {
 		if listener.shouldResync(now) {
 			resyncNeeded = true
 			p.syncingListeners = append(p.syncingListeners, listener)
-			listener.determineNextResync(now)
+			listener.determineNextResync(now) // listener加入resync列表后，立即计算下一次resync时间
 		}
 	}
 	return resyncNeeded
 }
 
-func (p *sharedProcessor) resyncCheckPeriodChanged(resyncCheckPeriod time.Duration) {
+func (p *sharedProcessor) resyncCheckPeriodChanged(resyncCheckPeriod time.Duration) { // 遍历所有的listener，设置同步周期
 	p.listenersLock.RLock()
 	defer p.listenersLock.RUnlock()
 
