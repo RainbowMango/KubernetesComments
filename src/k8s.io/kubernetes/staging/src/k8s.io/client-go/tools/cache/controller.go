@@ -27,7 +27,7 @@ import (
 )
 
 // Config contains all the settings for a Controller.
-type Config struct {
+type Config struct { // Controller的配置，从中可以看出Controller需要什么
 	// The queue for your objects - has to be a DeltaFIFO due to
 	// assumptions in the implementation. Your Process() function
 	// should accept the output of this Queue's Pop() method.
@@ -119,7 +119,7 @@ func (c *controller) Run(stopCh <-chan struct{}) {
 	var wg wait.Group
 	defer wg.Wait()
 
-	wg.StartWithChannel(stopCh, r.Run)
+	wg.StartWithChannel(stopCh, r.Run)  // 启动Reflector
 
 	wait.Until(c.processLoop, time.Second, stopCh)
 }

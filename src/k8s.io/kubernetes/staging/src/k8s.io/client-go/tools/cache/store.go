@@ -73,7 +73,7 @@ type ExplicitKey string
 //
 // TODO: replace key-as-string with a key-as-struct so that this
 // packing/unpacking won't be necessary.
-func MetaNamespaceKeyFunc(obj interface{}) (string, error) {
+func MetaNamespaceKeyFunc(obj interface{}) (string, error) { // 为对象生成key
 	if key, ok := obj.(ExplicitKey); ok {
 		return string(key), nil
 	}

@@ -181,7 +181,7 @@ type sharedIndexInformer struct {
 	indexer    Indexer
 	controller Controller
 
-	processor             *sharedProcessor
+	processor             *sharedProcessor  // 管理所有用户的回调函数，分发消息给用户
 	cacheMutationDetector CacheMutationDetector
 
 	// This block is tracked to handle late initialization of the controller
@@ -190,7 +190,7 @@ type sharedIndexInformer struct {
 
 	// resyncCheckPeriod is how often we want the reflector's resync timer to fire so it can call
 	// shouldResync to check if any of our listeners need a resync.
-	resyncCheckPeriod time.Duration
+	resyncCheckPeriod time.Duration // resync检查周期，即周期性的检查有没有需要resync的listener
 	// defaultEventHandlerResyncPeriod is the default resync period for any handlers added via
 	// AddEventHandler (i.e. they don't specify one and just want to use the shared informer's default
 	// value).
@@ -327,7 +327,7 @@ func (s *sharedIndexInformer) AddEventHandler(handler ResourceEventHandler) { //
 	s.AddEventHandlerWithResyncPeriod(handler, s.defaultEventHandlerResyncPeriod)
 }
 
-func determineResyncPeriod(desired, check time.Duration) time.Duration { // 跟据当前的resync周期和期望的resync周期计算出最后的resync周期。如果有一方为0，则说明不resync。
+func determineResyncPeriod(desired, check time.Duration) time.Duration { // check意为上层检查(是否有resync的必要)的周期,实际resync周期一定要>= 检查周期。比如listener希望1s resync一次，但是检查周期为5s，即5s才可以开始一次resync，listener期望的1秒不生效
 	if desired == 0 {
 		return desired
 	}
@@ -335,7 +335,7 @@ func determineResyncPeriod(desired, check time.Duration) time.Duration { // 跟�
 		klog.Warningf("The specified resyncPeriod %v is invalid because this shared informer doesn't support resyncing", desired)
 		return 0
 	}
-	if desired < check { // 意思是listener的同步周期不能小于resyncCheckPeriod的周期
+	if desired < check { // 期望的周期如果比检查周期小，则需要调整，记录warning日志
 		klog.Warningf("The specified resyncPeriod %v is being increased to the minimum resyncCheckPeriod %v", desired, check)
 		return check
 	}
@@ -359,11 +359,11 @@ func (s *sharedIndexInformer) AddEventHandlerWithResyncPeriod(handler ResourceEv
 			resyncPeriod = minimumResyncPeriod
 		}
 
-		if resyncPeriod < s.resyncCheckPeriod {  // 如果新ResourceEventHandler的同步周期比当前值小,则需要更新成小值(越小越精确,取最小者)
-			if s.started { // informer已经启动的情况下不允许更改同步周期,维持原值不变
+		if resyncPeriod < s.resyncCheckPeriod {  // 如果新的用户希望更频繁的resync，那么检查周期也需要相应的变小（当informer还未启动的情况下）。
+			if s.started { // informer已经启动的情况，新加入的用户不能使用比检查周期更小的resync周期，这里会修改用户的期望，所以要记录warning日志
 				klog.Warningf("resyncPeriod %d is smaller than resyncCheckPeriod %d and the informer has already started. Changing it to %d", resyncPeriod, s.resyncCheckPeriod, s.resyncCheckPeriod)
 				resyncPeriod = s.resyncCheckPeriod
-			} else { // 如果informer还未启动,则更新所有listeners的resync周期,同步更新所有listener的周期
+			} else { // 如果informer还未启动,检查周期要变小，同时更新所有listeners的resync周期,同步更新所有listener的周期
 				// if the event handler's resyncPeriod is smaller than the current resyncCheckPeriod, update
 				// resyncCheckPeriod to match resyncPeriod and adjust the resync periods of all the listeners
 				// accordingly
@@ -530,7 +530,7 @@ type processorListener struct {
 	pendingNotifications buffer.RingGrowing
 
 	// requestedResyncPeriod is how frequently the listener wants a full resync from the shared informer
-	requestedResyncPeriod time.Duration // 期望的resync周期
+	requestedResyncPeriod time.Duration // 期望的resync周期，因为resync周期经常会因为其他listener的改变而改变，这里保留期望值，便于后续每次调整时重新审视
 	// resyncPeriod is how frequently the listener wants a full resync from the shared informer. This
 	// value may differ from requestedResyncPeriod if the shared informer adjusts it to align with the
 	// informer's overall resync check period.

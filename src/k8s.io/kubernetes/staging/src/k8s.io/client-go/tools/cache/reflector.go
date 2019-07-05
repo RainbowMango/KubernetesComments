@@ -53,12 +53,12 @@ type Reflector struct {
 	// The type of object we expect to place in the store.
 	expectedType reflect.Type
 	// The destination to sync up with the watch source
-	store Store
+	store Store // watch的资源对应的本地缓存
 	// listerWatcher is used to perform lists and watches.
-	listerWatcher ListerWatcher
+	listerWatcher ListerWatcher // list 和 watch的接口
 	// period controls timing between one watch ending and
 	// the beginning of the next one.
-	period       time.Duration
+	period       time.Duration // watch长连接有可能中断，该时间为中断后重启的时间
 	resyncPeriod time.Duration
 	ShouldResync func() bool
 	// clock allows tests to manipulate time
