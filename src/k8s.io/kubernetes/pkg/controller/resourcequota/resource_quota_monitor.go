@@ -184,8 +184,8 @@ func (qm *QuotaMonitor) controllerFor(resource schema.GroupVersionResource) (cac
 	return nil, fmt.Errorf("unable to monitor quota for resource %q", resource.String())
 }
 
-// SyncMonitors rebuilds the monitor set according to the supplied resources,
-// creating or deleting monitors as necessary. It will return any error
+// SyncMonitors rebuilds the monitor set according to the supplied resources,    // SyncMonitor会跟据参数中的resources来重建monitor
+// creating or deleting monitors as necessary. It will return any error          // SyncMonitors会尽量为每个resource都创建monitor(出错时先记录错误，最后再返回结果)，不会遇错即停
 // encountered, but will make an attempt to create a monitor for each resource
 // instead of immediately exiting on an error. It may be called before or after
 // Run. Monitors are NOT started as part of the sync. To ensure all existing
@@ -194,25 +194,25 @@ func (qm *QuotaMonitor) SyncMonitors(resources map[schema.GroupVersionResource]s
 	qm.monitorLock.Lock()
 	defer qm.monitorLock.Unlock()
 
-	toRemove := qm.monitors
+	toRemove := qm.monitors   // 原有的monitor都标记为待删除
 	if toRemove == nil {
 		toRemove = monitors{}
 	}
-	current := monitors{}
+	current := monitors{}    // 重建后总的monitor
 	errs := []error{}
-	kept := 0
-	added := 0
+	kept := 0                // 保留的monitor计数器（仅用于日志记录）
+	added := 0               // 此次新建，增加的monitor计数器
 	for resource := range resources {
 		if _, ok := qm.ignoredResources[resource.GroupResource()]; ok {
 			continue
 		}
-		if m, ok := toRemove[resource]; ok {
+		if m, ok := toRemove[resource]; ok { // 如果原有的monitor中包含新资源，那么会保留下来（不会删除后重建）
 			current[resource] = m
 			delete(toRemove, resource)
 			kept++
 			continue
 		}
-		c, err := qm.controllerFor(resource)
+		c, err := qm.controllerFor(resource) // 创建新的monitor
 		if err != nil {
 			errs = append(errs, fmt.Errorf("couldn't start monitor for resource %q: %v", resource, err))
 			continue
@@ -234,7 +234,7 @@ func (qm *QuotaMonitor) SyncMonitors(resources map[schema.GroupVersionResource]s
 	}
 	qm.monitors = current
 
-	for _, monitor := range toRemove {
+	for _, monitor := range toRemove { // 停掉不需要的monitor
 		if monitor.stopCh != nil {
 			close(monitor.stopCh)
 		}
