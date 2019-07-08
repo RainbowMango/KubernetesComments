@@ -29,8 +29,8 @@ type InformerFactory interface {
 }
 
 type informerFactory struct {
-	typedInformerFactory   informers.SharedInformerFactory
-	dynamicInformerFactory dynamicinformer.DynamicSharedInformerFactory
+	typedInformerFactory   informers.SharedInformerFactory                 // 原生资源类型informer工厂
+	dynamicInformerFactory dynamicinformer.DynamicSharedInformerFactory    // 动态资源类型informer工厂（CRD资源等）
 }
 
 func (i *informerFactory) ForResource(resource schema.GroupVersionResource) (informers.GenericInformer, error) {

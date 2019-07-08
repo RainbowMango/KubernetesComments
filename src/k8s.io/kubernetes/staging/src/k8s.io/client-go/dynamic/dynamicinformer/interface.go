@@ -23,7 +23,7 @@ import (
 )
 
 // DynamicSharedInformerFactory provides access to a shared informer and lister for dynamic client
-type DynamicSharedInformerFactory interface {
+type DynamicSharedInformerFactory interface { // 动态资源类型informer工厂
 	Start(stopCh <-chan struct{})
 	ForResource(gvr schema.GroupVersionResource) informers.GenericInformer
 	WaitForCacheSync(stopCh <-chan struct{}) map[schema.GroupVersionResource]bool

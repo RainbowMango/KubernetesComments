@@ -185,7 +185,7 @@ func (f *sharedInformerFactory) InformerFor(obj runtime.Object, newFunc internal
 // API group versions.
 type SharedInformerFactory interface {
 	internalinterfaces.SharedInformerFactory
-	ForResource(resource schema.GroupVersionResource) (GenericInformer, error)
+	ForResource(resource schema.GroupVersionResource) (GenericInformer, error) // 为指定资源类型创建informer
 	WaitForCacheSync(stopCh <-chan struct{}) map[reflect.Type]bool
 
 	Admissionregistration() admissionregistration.Interface

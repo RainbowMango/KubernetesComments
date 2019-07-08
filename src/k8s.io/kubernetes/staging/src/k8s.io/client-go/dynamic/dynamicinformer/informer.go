@@ -64,7 +64,7 @@ type dynamicSharedInformerFactory struct {
 
 var _ DynamicSharedInformerFactory = &dynamicSharedInformerFactory{}
 
-func (f *dynamicSharedInformerFactory) ForResource(gvr schema.GroupVersionResource) informers.GenericInformer { // 获取某个资源的informer
+func (f *dynamicSharedInformerFactory) ForResource(gvr schema.GroupVersionResource) informers.GenericInformer { // 获取某个资源的informer，如果不存在则创建一个并返回
 	f.lock.Lock()
 	defer f.lock.Unlock()
 

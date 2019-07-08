@@ -454,15 +454,15 @@ func (rq *ResourceQuotaController) Sync(discoveryFunc NamespacedResourcesFunc, p
 }
 
 // printDiff returns a human-readable summary of what resources were added and removed
-func printDiff(oldResources, newResources map[schema.GroupVersionResource]struct{}) string {
+func printDiff(oldResources, newResources map[schema.GroupVersionResource]struct{}) string { // 找出资源变化
 	removed := sets.NewString()
-	for oldResource := range oldResources {
+	for oldResource := range oldResources { // 老列表中有,新列表中没有,说明被删除了
 		if _, ok := newResources[oldResource]; !ok {
 			removed.Insert(fmt.Sprintf("%+v", oldResource))
 		}
 	}
 	added := sets.NewString()
-	for newResource := range newResources {
+	for newResource := range newResources { // 新列表中有,老列表中没有,说明是新加的
 		if _, ok := oldResources[newResource]; !ok {
 			added.Insert(fmt.Sprintf("%+v", newResource))
 		}

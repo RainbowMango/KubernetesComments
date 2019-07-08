@@ -297,7 +297,7 @@ type ControllerContext struct {
 
 	// GenericInformerFactory gives access to informers for typed resources
 	// and dynamic resources.
-	GenericInformerFactory controller.InformerFactory
+	GenericInformerFactory controller.InformerFactory  // 内置资源和动态资源(CRD)的informer合集
 
 	// ComponentConfig provides access to init options for a given controller
 	ComponentConfig kubectrlmgrconfig.KubeControllerManagerConfiguration
@@ -374,10 +374,10 @@ func NewControllerInitializers(loopMode ControllerLoopMode) map[string]InitFunc 
 	controllers["endpoint"] = startEndpointController
 	controllers["replicationcontroller"] = startReplicationController
 	controllers["podgc"] = startPodGCController
-	controllers["resourcequota"] = startResourceQuotaController
+	controllers["resourcequota"] = startResourceQuotaController       // quota controller
 	controllers["namespace"] = startNamespaceController
 	controllers["serviceaccount"] = startServiceAccountController
-	controllers["garbagecollector"] = startGarbageCollectorController
+	controllers["garbagecollector"] = startGarbageCollectorController // 垃圾回收controller
 	controllers["daemonset"] = startDaemonSetController
 	controllers["job"] = startJobController
 	controllers["deployment"] = startDeploymentController
