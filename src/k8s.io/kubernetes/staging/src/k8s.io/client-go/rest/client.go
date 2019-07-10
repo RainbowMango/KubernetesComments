@@ -53,7 +53,7 @@ type Interface interface {
 
 // RESTClient imposes common Kubernetes API conventions on a set of resource paths.
 // The baseURL is expected to point to an HTTP or HTTPS path that is the parent
-// of one or more resources.  The server should return a decodable API resource
+// of one or more resources.  The server should return a decodable API resource     // server在不出错的情况下会返回一个可以反序列化的资源对象，出错时返回api.Status对象，里面包含错误原因
 // object, or an api.Status object which contains information about the reason for
 // any failure.
 //

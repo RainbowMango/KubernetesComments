@@ -106,7 +106,7 @@ const (
 
 // ObjectMeta is metadata that all persisted resources must have, which includes all objects
 // users must create.
-type ObjectMeta struct {
+type ObjectMeta struct { // 资源的metadata，所有资源共用
 	// Name must be unique within a namespace. Is required when creating resources, although
 	// some resources may allow a client to request the generation of an appropriate name
 	// automatically. Name is primarily intended for creation idempotence and configuration
@@ -1298,7 +1298,7 @@ type TableOptions struct {
 // PartialObjectMetadata is a generic representation of any object with ObjectMeta. It allows clients
 // to get access to a particular ObjectMeta schema without knowing the details of the version.
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-type PartialObjectMetadata struct {
+type PartialObjectMetadata struct { // ObjectMeta的精简版，实际还是用ObjectMeta，但内容较少，主要是跟版本无关的属性
 	TypeMeta `json:",inline"`
 	// Standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata
