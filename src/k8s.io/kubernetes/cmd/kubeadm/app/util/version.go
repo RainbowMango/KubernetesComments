@@ -48,26 +48,26 @@ var (
 // available version information from release servers based on
 // label names, like "stable" or "latest".
 //
-// If argument is already semantic version string, it
+// If argument is already semantic version string, it  // 如果输入已经是个标准的版本号，那么原样返回（意思是不需要再跟据输入找了，也没法找到了）
 // will return same string.
 //
 // In case of labels, it tries to fetch from release
 // servers and then return actual semantic version.
 //
-// Available names on release servers:
-//  stable      (latest stable release)
-//  stable-1    (latest stable release in 1.x)
-//  stable-1.0  (and similarly 1.1, 1.2, 1.3, ...)
-//  latest      (latest release, including alpha/beta)
-//  latest-1    (latest release in 1.x, including alpha/beta)
-//  latest-1.0  (and similarly 1.1, 1.2, 1.3, ...)
-func KubernetesReleaseVersion(version string) (string, error) {
+// Available names on release servers:   // release server保存了kubernetes多个类型的最新版本，每种类型都对应一个txt文件，查询版本时实际上是访问这些文件，访问时需要加上URL前缀“https://dl.k8s.io/release/”和后缀".txt"
+//  stable      (latest stable release)			                // stable.txt  最新的稳定版本，e.g. v1.15.0
+//  stable-1    (latest stable release in 1.x)                  // stable-1.txt 大版本号为1的最新稳定版本，e.g. v1.15.0
+//  stable-1.0  (and similarly 1.1, 1.2, 1.3, ...)              // stable-1.0.txt 大版本号为1，中版本号为0的最新稳定版本，e.g. v1.0.7
+//  latest      (latest release, including alpha/beta)          // latest.txt  最新的版本，e.g. v1.16.0-alpha.0
+//  latest-1    (latest release in 1.x, including alpha/beta)   // latest-1.txt 大版本号为1的最新版本，e.g. v1.16.0-alpha.0
+//  latest-1.0  (and similarly 1.1, 1.2, 1.3, ...)              // latest-1.0.txt 大版本号为1，中版本号为0的最新版本，e.g. v1.0.7
+func KubernetesReleaseVersion(version string) (string, error) { // 跟据需求获取release server中记录的发布版本
 	ver := normalizedBuildVersion(version)
-	if len(ver) != 0 {
+	if len(ver) != 0 { // 如要已经是一个标准的版本号，那么直接返回
 		return ver, nil
 	}
 
-	bucketURL, versionLabel, err := splitVersion(version)
+	bucketURL, versionLabel, err := splitVersion(version) // e.g. bucketURL = "https://dl.k8s.io/release/"  versionLable = "latest"
 	if err != nil {
 		return "", err
 	}
@@ -84,9 +84,9 @@ func KubernetesReleaseVersion(version string) (string, error) {
 		// pkgversion.Get().String() should always return a correct version added by the golang
 		// linker and the build system. The version can still be missing when doing unit tests
 		// on individual packages.
-		clientVersion, clientVersionErr := kubeadmVersion(pkgversion.Get().String())
+		clientVersion, clientVersionErr := kubeadmVersion(pkgversion.Get().String()) // clientVersion输出诸如 "1.15.0"
 		// Fetch version from the internet.
-		url := fmt.Sprintf("%s/%s.txt", bucketURL, versionLabel)
+		url := fmt.Sprintf("%s/%s.txt", bucketURL, versionLabel) // 拼出的字符串类似 “https://dl.k8s.io/release/latest.txt”
 		body, err := fetchFromURL(url, getReleaseVersionTimeout)
 		if err != nil {
 			// If the network operaton was successful but the server did not reply with StatusOK
@@ -144,7 +144,7 @@ func KubernetesIsCIVersion(version string) bool {
 
 // Internal helper: returns normalized build version (with "v" prefix if needed)
 // If input doesn't match known version pattern, returns empty string.
-func normalizedBuildVersion(version string) string {
+func normalizedBuildVersion(version string) string { // 版本号格式归一，输出类似v.1.15.0-alpha这种（本函数最多会在原版本号前加'v'，如果版本格式不符合要求，直接返回空字符串）
 	if kubeReleaseRegex.MatchString(version) {
 		if strings.HasPrefix(version, "v") {
 			return version

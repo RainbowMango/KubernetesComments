@@ -25,7 +25,7 @@ import (
 	"testing"
 )
 
-func TestEmptyVersion(t *testing.T) {
+func TestEmptyVersion(t *testing.T) { // 如果输入版号为""，那么KubernetesReleaseVersion一定返回空
 
 	ver, err := KubernetesReleaseVersion("")
 	if err == nil {
