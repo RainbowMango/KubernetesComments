@@ -254,7 +254,7 @@ func (r FilteringResourceEventHandler) OnDelete(obj interface{}) {
 // DeletionHandlingMetaNamespaceKeyFunc checks for
 // DeletedFinalStateUnknown objects before calling
 // MetaNamespaceKeyFunc.
-func DeletionHandlingMetaNamespaceKeyFunc(obj interface{}) (string, error) {
+func DeletionHandlingMetaNamespaceKeyFunc(obj interface{}) (string, error) { // 本质上还是计算对象的key值，只是做了一步检查，如果对象是DeletedFinalStateUnknown状态，则直接返回key值，不用再计算了
 	if d, ok := obj.(DeletedFinalStateUnknown); ok {
 		return d.Key, nil
 	}
