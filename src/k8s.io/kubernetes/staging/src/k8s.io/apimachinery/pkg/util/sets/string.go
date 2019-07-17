@@ -27,7 +27,7 @@ import (
 type String map[string]Empty
 
 // NewString creates a String from a list of values.
-func NewString(items ...string) String {
+func NewString(items ...string) String { // 由多个string生成新的String对象
 	ss := String{}
 	ss.Insert(items...)
 	return ss
@@ -35,7 +35,7 @@ func NewString(items ...string) String {
 
 // StringKeySet creates a String from a keys of a map[string](? extends interface{}).
 // If the value passed in is not actually a map, this will panic.
-func StringKeySet(theMap interface{}) String {
+func StringKeySet(theMap interface{}) String { // 生成map的key集合
 	v := reflect.ValueOf(theMap)
 	ret := String{}
 
@@ -46,27 +46,27 @@ func StringKeySet(theMap interface{}) String {
 }
 
 // Insert adds items to the set.
-func (s String) Insert(items ...string) {
+func (s String) Insert(items ...string) { // 直接写入map，不管对象是否已存在
 	for _, item := range items {
 		s[item] = Empty{}
 	}
 }
 
 // Delete removes all items from the set.
-func (s String) Delete(items ...string) {
+func (s String) Delete(items ...string) { // 逐个从map中删除元素
 	for _, item := range items {
 		delete(s, item)
 	}
 }
 
 // Has returns true if and only if item is contained in the set.
-func (s String) Has(item string) bool {
+func (s String) Has(item string) bool { // 查找是否存在
 	_, contained := s[item]
 	return contained
 }
 
 // HasAll returns true if and only if all items are contained in the set.
-func (s String) HasAll(items ...string) bool {
+func (s String) HasAll(items ...string) bool { // 查找多个元素是否都在集合中
 	for _, item := range items {
 		if !s.Has(item) {
 			return false
@@ -76,7 +76,7 @@ func (s String) HasAll(items ...string) bool {
 }
 
 // HasAny returns true if any items are contained in the set.
-func (s String) HasAny(items ...string) bool {
+func (s String) HasAny(items ...string) bool { // 查找集合中是否包含多个元素素中的一个
 	for _, item := range items {
 		if s.Has(item) {
 			return true
@@ -91,7 +91,7 @@ func (s String) HasAny(items ...string) bool {
 // s2 = {a1, a2, a4, a5}
 // s1.Difference(s2) = {a3}
 // s2.Difference(s1) = {a4, a5}
-func (s String) Difference(s2 String) String {
+func (s String) Difference(s2 String) String { // 返回不在s2中的元素集合
 	result := NewString()
 	for key := range s {
 		if !s2.Has(key) {
@@ -107,7 +107,7 @@ func (s String) Difference(s2 String) String {
 // s2 = {a3, a4}
 // s1.Union(s2) = {a1, a2, a3, a4}
 // s2.Union(s1) = {a1, a2, a3, a4}
-func (s1 String) Union(s2 String) String {
+func (s1 String) Union(s2 String) String { // 两集合相加，不用考虑元素是否重复，全部加到集合中即可，集合自动去重
 	result := NewString()
 	for key := range s1 {
 		result.Insert(key)
@@ -123,10 +123,10 @@ func (s1 String) Union(s2 String) String {
 // s1 = {a1, a2}
 // s2 = {a2, a3}
 // s1.Intersection(s2) = {a2}
-func (s1 String) Intersection(s2 String) String {
+func (s1 String) Intersection(s2 String) String { // 集合取交集
 	var walk, other String
 	result := NewString()
-	if s1.Len() < s2.Len() {
+	if s1.Len() < s2.Len() { // 遍历短的集合，检查每个短集合中的元素是否同样出现在长集合中，是则加入结果集，否则忽略
 		walk = s1
 		other = s2
 	} else {
@@ -142,7 +142,7 @@ func (s1 String) Intersection(s2 String) String {
 }
 
 // IsSuperset returns true if and only if s1 is a superset of s2.
-func (s1 String) IsSuperset(s2 String) bool {
+func (s1 String) IsSuperset(s2 String) bool { // 检查s是否是s2的超集
 	for item := range s2 {
 		if !s1.Has(item) {
 			return false
@@ -154,7 +154,7 @@ func (s1 String) IsSuperset(s2 String) bool {
 // Equal returns true if and only if s1 is equal (as a set) to s2.
 // Two sets are equal if their membership is identical.
 // (In practice, this means same elements, order doesn't matter)
-func (s1 String) Equal(s2 String) bool {
+func (s1 String) Equal(s2 String) bool { // 判断集合是否相等
 	return len(s1) == len(s2) && s1.IsSuperset(s2)
 }
 
@@ -165,17 +165,17 @@ func (s sortableSliceOfString) Less(i, j int) bool { return lessString(s[i], s[j
 func (s sortableSliceOfString) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 
 // List returns the contents as a sorted string slice.
-func (s String) List() []string {
+func (s String) List() []string { // 排序输出集合元素
 	res := make(sortableSliceOfString, 0, len(s))
 	for key := range s {
 		res = append(res, key)
 	}
-	sort.Sort(res)
+	sort.Sort(res) // Golang原生排序算法
 	return []string(res)
 }
 
 // UnsortedList returns the slice with contents in random order.
-func (s String) UnsortedList() []string {
+func (s String) UnsortedList() []string { // 输出集合元素
 	res := make([]string, 0, len(s))
 	for key := range s {
 		res = append(res, key)
@@ -184,7 +184,7 @@ func (s String) UnsortedList() []string {
 }
 
 // Returns a single element from the set.
-func (s String) PopAny() (string, bool) {
+func (s String) PopAny() (string, bool) { // Pop 任意元素，无元素时反回空值+false。
 	for key := range s {
 		s.Delete(key)
 		return key, true
@@ -194,7 +194,7 @@ func (s String) PopAny() (string, bool) {
 }
 
 // Len returns the size of the set.
-func (s String) Len() int {
+func (s String) Len() int { // 集合长度
 	return len(s)
 }
 
