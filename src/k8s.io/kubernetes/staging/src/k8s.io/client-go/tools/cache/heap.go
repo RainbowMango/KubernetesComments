@@ -48,7 +48,7 @@ type heapData struct {
 	// queue implements a heap data structure and keeps the order of elements
 	// according to the heap invariant. The queue keeps the keys of objects stored
 	// in "items".
-	queue []string
+	queue []string // 保存堆元素的key值，其中slice的顺序是堆排序的结果
 
 	// keyFunc is used to make the key used for queued item insertion and retrieval, and
 	// should be deterministic.
@@ -63,7 +63,7 @@ var (
 
 // Less compares two objects and returns true if the first one should go
 // in front of the second one in the heap.
-func (h *heapData) Less(i, j int) bool {
+func (h *heapData) Less(i, j int) bool { // 两元素大小比较，用于堆排序或堆调整。先跟据下标取出两元素素，再跟据比较函数一较高下
 	if i > len(h.queue) || j > len(h.queue) {
 		return false
 	}
@@ -83,8 +83,8 @@ func (h *heapData) Len() int { return len(h.queue) }
 
 // Swap implements swapping of two elements in the heap. This is a part of standard
 // heap interface and should never be called directly.
-func (h *heapData) Swap(i, j int) {
-	h.queue[i], h.queue[j] = h.queue[j], h.queue[i]
+func (h *heapData) Swap(i, j int) { // 堆元素交换
+	h.queue[i], h.queue[j] = h.queue[j], h.queue[i] // 神奇，slice可以一行代码搞定两数交换了
 	item := h.items[h.queue[i]]
 	item.index = i
 	item = h.items[h.queue[j]]
@@ -92,7 +92,7 @@ func (h *heapData) Swap(i, j int) {
 }
 
 // Push is supposed to be called by heap.Push only.
-func (h *heapData) Push(kv interface{}) {
+func (h *heapData) Push(kv interface{}) { // 直接追加元素，不用调整堆？？
 	keyValue := kv.(*itemKeyValue)
 	n := len(h.queue)
 	h.items[keyValue.key] = &heapItem{keyValue.obj, n}
@@ -100,7 +100,7 @@ func (h *heapData) Push(kv interface{}) {
 }
 
 // Pop is supposed to be called by heap.Pop only.
-func (h *heapData) Pop() interface{} {
+func (h *heapData) Pop() interface{} { // 从尾部弹出
 	key := h.queue[len(h.queue)-1]
 	h.queue = h.queue[0 : len(h.queue)-1]
 	item, ok := h.items[key]
