@@ -30,10 +30,10 @@ import (
 // AppendFunc is used to add a matching item to whatever list the caller is using
 type AppendFunc func(interface{})
 
-func ListAll(store Store, selector labels.Selector, appendFn AppendFunc) error {
+func ListAll(store Store, selector labels.Selector, appendFn AppendFunc) error { // 列出存储(Store)中满足指定条件的所有对象
 	selectAll := selector.Empty()
 	for _, m := range store.List() {
-		if selectAll {
+		if selectAll { // 如果没有选择条件，直接命中
 			// Avoid computing labels of the objects to speed up common flows
 			// of listing all objects.
 			appendFn(m)
@@ -50,7 +50,7 @@ func ListAll(store Store, selector labels.Selector, appendFn AppendFunc) error {
 	return nil
 }
 
-func ListAllByNamespace(indexer Indexer, namespace string, selector labels.Selector, appendFn AppendFunc) error {
+func ListAllByNamespace(indexer Indexer, namespace string, selector labels.Selector, appendFn AppendFunc) error { // 跟据namespace list数据，此时使用Store的索引功能
 	selectAll := selector.Empty()
 	if namespace == metav1.NamespaceAll {
 		for _, m := range indexer.List() {

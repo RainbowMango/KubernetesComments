@@ -26,7 +26,7 @@ import (
 	"k8s.io/klog"
 )
 
-// NewDeltaFIFO returns a Store which can be used process changes to items.
+// NewDeltaFIFO returns a Store which can be used process changes to items.   // NewDeltaFIFO 返回一个Store类型的存储，可用于处理元素变化
 //
 // keyFunc is used to figure out what key an object should have. (It's
 // exposed in the returned DeltaFIFO's KeyOf() method, with bonus features.)

@@ -178,7 +178,7 @@ func WaitForCacheSync(stopCh <-chan struct{}, cacheSyncs ...InformerSynced) bool
 }
 
 type sharedIndexInformer struct {
-	indexer    Indexer
+	indexer    Indexer     // informer的索引器，informer从apiserver获取到的对象都会存在此处，还会为对象创建索引以加速查询
 	controller Controller
 
 	processor             *sharedProcessor  // 管理所有用户的回调函数，分发消息给用户
