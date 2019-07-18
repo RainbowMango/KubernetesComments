@@ -16,7 +16,7 @@ limitations under the License.
 
 package cache
 
-// UndeltaStore listens to incremental updates and sends complete state on every change.
+// UndeltaStore listens to incremental updates and sends complete state on every change. // UndeltaStore 是基于cache创建的（参看NewUndeltaStore），它在数据更新时，对外提供全量信息，不是增量，所以叫"undelta"
 // It implements the Store interface so that it can receive a stream of mirrored objects
 // from Reflector.  Whenever it receives any complete (Store.Replace) or incremental change
 // (Store.Add, Store.Update, Store.Delete), it sends the complete state by calling PushFunc.
@@ -42,7 +42,7 @@ var _ Store = &UndeltaStore{}
 // 4               Store.List() -> [a,b]
 // 5                                         Store.List() -> [a,b]
 
-func (u *UndeltaStore) Add(obj interface{}) error {
+func (u *UndeltaStore) Add(obj interface{}) error { // 每次增加数据时，都会把全量通过PushFunc推送出去
 	if err := u.Store.Add(obj); err != nil {
 		return err
 	}
@@ -50,7 +50,7 @@ func (u *UndeltaStore) Add(obj interface{}) error {
 	return nil
 }
 
-func (u *UndeltaStore) Update(obj interface{}) error {
+func (u *UndeltaStore) Update(obj interface{}) error { // 每次更新数据，都会把全量通过PushFunc推送出去
 	if err := u.Store.Update(obj); err != nil {
 		return err
 	}
@@ -58,7 +58,7 @@ func (u *UndeltaStore) Update(obj interface{}) error {
 	return nil
 }
 
-func (u *UndeltaStore) Delete(obj interface{}) error {
+func (u *UndeltaStore) Delete(obj interface{}) error { // 每次删除数据，都会把全量通过PushFunc推送出去
 	if err := u.Store.Delete(obj); err != nil {
 		return err
 	}
@@ -66,7 +66,7 @@ func (u *UndeltaStore) Delete(obj interface{}) error {
 	return nil
 }
 
-func (u *UndeltaStore) Replace(list []interface{}, resourceVersion string) error {
+func (u *UndeltaStore) Replace(list []interface{}, resourceVersion string) error { // 完整替换数据，都会把全量通过PushFunc推送出去
 	if err := u.Store.Replace(list, resourceVersion); err != nil {
 		return err
 	}
@@ -75,7 +75,7 @@ func (u *UndeltaStore) Replace(list []interface{}, resourceVersion string) error
 }
 
 // NewUndeltaStore returns an UndeltaStore implemented with a Store.
-func NewUndeltaStore(pushFunc func([]interface{}), keyFunc KeyFunc) *UndeltaStore {
+func NewUndeltaStore(pushFunc func([]interface{}), keyFunc KeyFunc) *UndeltaStore { // 创建UndeltaStore
 	return &UndeltaStore{
 		Store:    NewStore(keyFunc),
 		PushFunc: pushFunc,
