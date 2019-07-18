@@ -92,7 +92,7 @@ func MetaNamespaceKeyFunc(obj interface{}) (string, error) { // 为对象生成k
 //
 // TODO: replace key-as-string with a key-as-struct so that this
 // packing/unpacking won't be necessary.
-func SplitMetaNamespaceKey(key string) (namespace, name string, err error) {
+func SplitMetaNamespaceKey(key string) (namespace, name string, err error) { // 从key值中拆出namespace和name
 	parts := strings.Split(key, "/")
 	switch len(parts) {
 	case 1:
@@ -109,7 +109,7 @@ func SplitMetaNamespaceKey(key string) (namespace, name string, err error) {
 // cache responsibilities are limited to:
 //	1. Computing keys for objects via keyFunc
 //  2. Invoking methods of a ThreadSafeStorage interface
-type cache struct {
+type cache struct { // cache 本身只提供计算对象key值的功能，其存储依赖ThreadSafeStore
 	// cacheStorage bears the burden of thread safety for the cache
 	cacheStorage ThreadSafeStore
 	// keyFunc is used to make the key for objects stored in and retrieved from items, and
@@ -120,7 +120,7 @@ type cache struct {
 var _ Store = &cache{}
 
 // Add inserts an item into the cache.
-func (c *cache) Add(obj interface{}) error {
+func (c *cache) Add(obj interface{}) error { // 添加对象时只是生成对象的key值，然后放入cacheStorage中
 	key, err := c.keyFunc(obj)
 	if err != nil {
 		return KeyError{obj, err}
@@ -130,7 +130,7 @@ func (c *cache) Add(obj interface{}) error {
 }
 
 // Update sets an item in the cache to its updated state.
-func (c *cache) Update(obj interface{}) error {
+func (c *cache) Update(obj interface{}) error { // 更新对象，生成对象key值，然后调用cacheStorage接口更新
 	key, err := c.keyFunc(obj)
 	if err != nil {
 		return KeyError{obj, err}
@@ -140,7 +140,7 @@ func (c *cache) Update(obj interface{}) error {
 }
 
 // Delete removes an item from the cache.
-func (c *cache) Delete(obj interface{}) error {
+func (c *cache) Delete(obj interface{}) error { // 删除对象，生成对象key值，然后调用cacheStorage接口删除
 	key, err := c.keyFunc(obj)
 	if err != nil {
 		return KeyError{obj, err}
@@ -151,41 +151,41 @@ func (c *cache) Delete(obj interface{}) error {
 
 // List returns a list of all the items.
 // List is completely threadsafe as long as you treat all items as immutable.
-func (c *cache) List() []interface{} {
+func (c *cache) List() []interface{} { // 获取所有对象，直接调用cacheStorage的接口
 	return c.cacheStorage.List()
 }
 
 // ListKeys returns a list of all the keys of the objects currently
 // in the cache.
-func (c *cache) ListKeys() []string {
+func (c *cache) ListKeys() []string { // 获取对象的key，直接调用cacheStorage的接口
 	return c.cacheStorage.ListKeys()
 }
 
 // GetIndexers returns the indexers of cache
-func (c *cache) GetIndexers() Indexers {
+func (c *cache) GetIndexers() Indexers { // 获取索引生成器，直接调用cacheStorage的接口
 	return c.cacheStorage.GetIndexers()
 }
 
 // Index returns a list of items that match on the index function
 // Index is thread-safe so long as you treat all items as immutable
-func (c *cache) Index(indexName string, obj interface{}) ([]interface{}, error) {
+func (c *cache) Index(indexName string, obj interface{}) ([]interface{}, error) { // 跟据索引生成器名称查找对象
 	return c.cacheStorage.Index(indexName, obj)
 }
 
-func (c *cache) IndexKeys(indexName, indexKey string) ([]string, error) {
+func (c *cache) IndexKeys(indexName, indexKey string) ([]string, error) { // 跟据索引生成器，和指定的索引查找对象
 	return c.cacheStorage.IndexKeys(indexName, indexKey)
 }
 
 // ListIndexFuncValues returns the list of generated values of an Index func
-func (c *cache) ListIndexFuncValues(indexName string) []string {
+func (c *cache) ListIndexFuncValues(indexName string) []string { // 查找指定索引生成器生成的索引名列表
 	return c.cacheStorage.ListIndexFuncValues(indexName)
 }
 
-func (c *cache) ByIndex(indexName, indexKey string) ([]interface{}, error) {
+func (c *cache) ByIndex(indexName, indexKey string) ([]interface{}, error) { // 跟据索引生成器名称,索引名查找对象
 	return c.cacheStorage.ByIndex(indexName, indexKey)
 }
 
-func (c *cache) AddIndexers(newIndexers Indexers) error {
+func (c *cache) AddIndexers(newIndexers Indexers) error { // 增加新的索引生成器
 	return c.cacheStorage.AddIndexers(newIndexers)
 }
 
@@ -201,7 +201,7 @@ func (c *cache) Get(obj interface{}) (item interface{}, exists bool, err error) 
 
 // GetByKey returns the request item, or exists=false.
 // GetByKey is completely threadsafe as long as you treat all items as immutable.
-func (c *cache) GetByKey(key string) (item interface{}, exists bool, err error) {
+func (c *cache) GetByKey(key string) (item interface{}, exists bool, err error) { // 跟据key值查找对象，直接调用cacheStorage的接口
 	item, exists = c.cacheStorage.Get(key)
 	return item, exists, nil
 }
@@ -209,7 +209,7 @@ func (c *cache) GetByKey(key string) (item interface{}, exists bool, err error) 
 // Replace will delete the contents of 'c', using instead the given list.
 // 'c' takes ownership of the list, you should not reference the list again
 // after calling this function.
-func (c *cache) Replace(list []interface{}, resourceVersion string) error {
+func (c *cache) Replace(list []interface{}, resourceVersion string) error { // 替换存储
 	items := make(map[string]interface{}, len(list))
 	for _, item := range list {
 		key, err := c.keyFunc(item)
@@ -228,7 +228,7 @@ func (c *cache) Resync() error {
 }
 
 // NewStore returns a Store implemented simply with a map and a lock.
-func NewStore(keyFunc KeyFunc) Store {
+func NewStore(keyFunc KeyFunc) Store { // 创建本地存储，不提供索引器，则本地存储仅仅是一个简单的map
 	return &cache{
 		cacheStorage: NewThreadSafeStore(Indexers{}, Indices{}),
 		keyFunc:      keyFunc,
@@ -236,7 +236,7 @@ func NewStore(keyFunc KeyFunc) Store {
 }
 
 // NewIndexer returns an Indexer implemented simply with a map and a lock.
-func NewIndexer(keyFunc KeyFunc, indexers Indexers) Indexer {
+func NewIndexer(keyFunc KeyFunc, indexers Indexers) Indexer { // 创建本地存储时，提供一组索引器，则可以让本地存储拥有索引功能
 	return &cache{
 		cacheStorage: NewThreadSafeStore(indexers, Indices{}),
 		keyFunc:      keyFunc,
