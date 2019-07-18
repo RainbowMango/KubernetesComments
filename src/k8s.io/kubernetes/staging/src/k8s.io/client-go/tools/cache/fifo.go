@@ -44,7 +44,7 @@ func (e ErrRequeue) Error() string {
 }
 
 // Queue is exactly like a Store, but has a Pop() method too.
-type Queue interface {
+type Queue interface { // Queue本质上还是一个Store(本地存储)，但是它有一个Pop()方法用于弹出数据
 	Store
 
 	// Pop blocks until it has something to process.
@@ -99,7 +99,7 @@ type FIFO struct {
 
 	// populated is true if the first batch of items inserted by Replace() has been populated
 	// or Delete/Add/Update was called first.
-	populated bool
+	populated bool // populate英文原意是居住，引处引申为只要队列中添加过数据为true
 	// initialPopulationCount is the number of items inserted by the first call of Replace()
 	initialPopulationCount int
 
@@ -119,7 +119,7 @@ var (
 )
 
 // Close the queue.
-func (f *FIFO) Close() {
+func (f *FIFO) Close() { // 关闭queue
 	f.closedLock.Lock()
 	defer f.closedLock.Unlock()
 	f.closed = true
@@ -144,7 +144,7 @@ func (f *FIFO) Add(obj interface{}) error {
 	f.lock.Lock()
 	defer f.lock.Unlock()
 	f.populated = true
-	if _, exists := f.items[id]; !exists {
+	if _, exists := f.items[id]; !exists { // 如果新加对象不存在，则加到队列里，否则不加队列，只加到items，算为一种更新
 		f.queue = append(f.queue, id)
 	}
 	f.items[id] = obj
@@ -158,7 +158,7 @@ func (f *FIFO) Add(obj interface{}) error {
 // This is useful in a single producer/consumer scenario so that the consumer can
 // safely retry items without contending with the producer and potentially enqueueing
 // stale items.
-func (f *FIFO) AddIfNotPresent(obj interface{}) error {
+func (f *FIFO) AddIfNotPresent(obj interface{}) error { // Add 变体，仅当对象不存在时才会存入，否则啥也不干
 	id, err := f.keyFunc(obj)
 	if err != nil {
 		return KeyError{obj, err}
@@ -243,7 +243,7 @@ func (f *FIFO) GetByKey(key string) (item interface{}, exists bool, err error) {
 }
 
 // Checks if the queue is closed
-func (f *FIFO) IsClosed() bool {
+func (f *FIFO) IsClosed() bool { // 只是判断queue是否已关闭，为什么要加锁？
 	f.closedLock.Lock()
 	defer f.closedLock.Unlock()
 	if f.closed {
@@ -270,7 +270,7 @@ func (f *FIFO) Pop(process PopProcessFunc) (interface{}, error) {
 				return nil, FIFOClosedError
 			}
 
-			f.cond.Wait()
+			f.cond.Wait()  // 如果没有数据就等待，暂时释放锁，有数据后会自动返回并自动持有锁
 		}
 		id := f.queue[0]
 		f.queue = f.queue[1:]
@@ -284,7 +284,7 @@ func (f *FIFO) Pop(process PopProcessFunc) (interface{}, error) {
 		}
 		delete(f.items, id)
 		err := process(item)
-		if e, ok := err.(ErrRequeue); ok {
+		if e, ok := err.(ErrRequeue); ok { // 如果外部处理函数出错了要再加到队列里
 			f.addIfNotPresent(id, item)
 			err = e.Err
 		}
@@ -316,7 +316,7 @@ func (f *FIFO) Replace(list []interface{}, resourceVersion string) error {
 
 	f.items = items
 	f.queue = f.queue[:0]
-	for id := range items {
+	for id := range items { // 这里可以直接赋值，拷贝一次很多余
 		f.queue = append(f.queue, id)
 	}
 	if len(f.queue) > 0 {
@@ -331,7 +331,7 @@ func (f *FIFO) Resync() error {
 	defer f.lock.Unlock()
 
 	inQueue := sets.NewString()
-	for _, id := range f.queue {
+	for _, id := range f.queue { // 这里可以直接使用inQueue.Insert(f.queue...)来搞定，遍历一次会产生多次函数调用，划不来
 		inQueue.Insert(id)
 	}
 	for id := range f.items {
