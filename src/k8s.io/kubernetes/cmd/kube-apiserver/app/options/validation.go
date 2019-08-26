@@ -45,7 +45,7 @@ func validateClusterIPFlags(options *ServerRunOptions) []error {
 func validateServiceNodePort(options *ServerRunOptions) []error {
 	var errs []error
 
-	if options.KubernetesServiceNodePort < 0 || options.KubernetesServiceNodePort > 65535 {
+	if options.KubernetesServiceNodePort < 0 || options.KubernetesServiceNodePort > 65535 { // 该参数用于指定apiserver创建的service类型，如果指定port，则为NodePort类型，否则为ClusterIP类型。
 		errs = append(errs, fmt.Errorf("--kubernetes-service-node-port %v must be between 0 and 65535, inclusive. If 0, the Kubernetes master service will be of type ClusterIP", options.KubernetesServiceNodePort))
 	}
 

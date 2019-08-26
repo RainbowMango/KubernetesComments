@@ -122,7 +122,7 @@ func (s *SecureServingOptions) Validate() []error {
 
 	errors := []error{}
 
-	if s.Required && s.BindPort < 1 || s.BindPort > 65535 {
+	if s.Required && s.BindPort < 1 || s.BindPort > 65535 { // https临听端口
 		errors = append(errors, fmt.Errorf("--secure-port %v must be between 1 and 65535, inclusive. It cannot be turned off with 0", s.BindPort))
 	} else if s.BindPort < 0 || s.BindPort > 65535 {
 		errors = append(errors, fmt.Errorf("--secure-port %v must be between 0 and 65535, inclusive. 0 for turning off secure port", s.BindPort))

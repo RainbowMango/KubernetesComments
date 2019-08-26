@@ -81,15 +81,15 @@ func (s *EtcdOptions) Validate() []error {
 	}
 
 	allErrors := []error{}
-	if len(s.StorageConfig.Transport.ServerList) == 0 {
+	if len(s.StorageConfig.Transport.ServerList) == 0 { // e.g. --etcd-servers=http://127.0.0.1:2379
 		allErrors = append(allErrors, fmt.Errorf("--etcd-servers must be specified"))
 	}
 
-	if s.StorageConfig.Type != storagebackend.StorageTypeUnset && !storageTypes.Has(s.StorageConfig.Type) {
+	if s.StorageConfig.Type != storagebackend.StorageTypeUnset && !storageTypes.Has(s.StorageConfig.Type) { // 目前只支持ETCD3，曾经有段时间并行支持ETCD2、ETCD3
 		allErrors = append(allErrors, fmt.Errorf("--storage-backend invalid, allowed values: %s. If not specified, it will default to 'etcd3'", strings.Join(storageTypes.List(), ", ")))
 	}
 
-	for _, override := range s.EtcdServersOverrides {
+	for _, override := range s.EtcdServersOverrides { // 格式： --etcd-servers-overrides="group/resource#servers,group/resource#servers"
 		tokens := strings.Split(override, "#")
 		if len(tokens) != 2 {
 			allErrors = append(allErrors, fmt.Errorf("--etcd-servers-overrides invalid, must be of format: group/resource#servers, where servers are URLs, semicolon separated"))
