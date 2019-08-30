@@ -26,7 +26,7 @@ func (t NodeType) Type() NodeType {
 	return t
 }
 
-func (t NodeType) String() string {
+func (t NodeType) String() string { // 返回字符串形式的类型名称
 	return NodeTypeName[t]
 }
 

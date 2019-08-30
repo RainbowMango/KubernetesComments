@@ -34,13 +34,13 @@ const (
 )
 
 type Parser struct {
-	Name  string
-	Root  *ListNode
-	input string
+	Name  string    // parser的名字
+	Root  *ListNode // node列表，用于存放解析后的结果
+	input string    // 存储解析的json文本
 	cur   *ListNode
-	pos   int
+	pos   int // 记录解析input时的位置，每解析一个UTF8字符，相应pos后移
 	start int
-	width int
+	width int // 解析过程中存储字符宽度，UTF8编码下一个字符的宽度不同，比如中文，一个汉字需占用3个字节
 }
 
 var (
@@ -86,7 +86,7 @@ func (p *Parser) Parse(text string) error {
 }
 
 // consumeText return the parsed text since last cosumeText
-func (p *Parser) consumeText() string {
+func (p *Parser) consumeText() string { // 获取当前的text
 	value := p.input[p.start:p.pos]
 	p.start = p.pos
 	return value
@@ -105,7 +105,7 @@ func (p *Parser) next() rune {
 }
 
 // peek returns but does not consume the next rune in the input.
-func (p *Parser) peek() rune {
+func (p *Parser) peek() rune { // 查看下一个字符，随即后退，即只是看下一个字符，相应位置指针不变
 	r := p.next()
 	p.backup()
 	return r
@@ -118,7 +118,7 @@ func (p *Parser) backup() {
 
 func (p *Parser) parseText(cur *ListNode) error {
 	for {
-		if strings.HasPrefix(p.input[p.pos:], leftDelim) {
+		if strings.HasPrefix(p.input[p.pos:], leftDelim) { // 新对象开始
 			if p.pos > p.start {
 				cur.append(newText(p.consumeText()))
 			}
@@ -139,7 +139,7 @@ func (p *Parser) parseText(cur *ListNode) error {
 func (p *Parser) parseLeftDelim(cur *ListNode) error {
 	p.pos += len(leftDelim)
 	p.consumeText()
-	newNode := newList()
+	newNode := newList() // "{"代表一个新的对象产生，追加到root对象中
 	cur.append(newNode)
 	cur = newNode
 	return p.parseInsideAction(cur)
@@ -185,8 +185,8 @@ func (p *Parser) parseInsideAction(cur *ListNode) error {
 // parseRightDelim scans the right delimiter, which is known to be present.
 func (p *Parser) parseRightDelim(cur *ListNode) error {
 	p.pos += len(rightDelim)
-	p.consumeText()
-	cur = p.Root
+	p.consumeText() // 也是忽略"}"的意思
+	cur = p.Root    // 如果是"}"则代表是上个元素结束,下个元素开始
 	return p.parseText(cur)
 }
 
@@ -230,7 +230,7 @@ func (p *Parser) parseRecursive(cur *ListNode) error {
 // parseNumber scans number
 func (p *Parser) parseNumber(cur *ListNode) error {
 	r := p.peek()
-	if r == '+' || r == '-' {
+	if r == '+' || r == '-' { // 如果下一个是"+"或者"-"时，忽略，直接取下一个
 		r = p.next()
 	}
 	for {
